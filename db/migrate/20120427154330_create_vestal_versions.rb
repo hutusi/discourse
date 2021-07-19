@@ -1,4 +1,6 @@
-class CreateVestalVersions < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateVestalVersions < ActiveRecord::Migration[4.2]
   def self.up
     create_table :versions do |t|
       t.belongs_to :versioned, polymorphic: true
@@ -9,7 +11,7 @@ class CreateVestalVersions < ActiveRecord::Migration
       t.integer :reverted_from
       t.string  :tag
 
-      t.timestamps
+      t.timestamps null: false
     end
 
     change_table :versions do |t|

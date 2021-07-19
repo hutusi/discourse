@@ -1,132 +1,123 @@
 // styles that apply to the popup that appears when you show the edit history of a post
 
 .modal.history-modal {
-  .modal-inner-container {
-    min-width: 960px;
-    min-height: 500px;
-  }
-  #revision-controls {
-    float: left;
-    .btn[disabled]:hover {
-      color: $primary;
-    }
-  }
   #revision-numbers {
     display: inline-block;
-    min-width: 80px;
+    min-width: 96px;
     text-align: center;
   }
-  #display-modes {
-    text-align: right;
+
+  #revision {
+    overflow: auto;
+    border-bottom: 3px solid var(--primary-low);
   }
-  #revision-loading {
+
+  table.markdown > tbody > tr > td,
+  .revision-content {
+    width: 47.5%;
     float: left;
-    margin: 5px 0 0 10px;
-    .fa {
-      margin-right: 7px;
+    min-height: 1px;
+
+    &:nth-of-type(2) {
+      margin-left: 5%;
     }
   }
+
   #revision-details {
-    background-color: scale-color($primary, $lightness: 90%);
     padding: 5px;
+  }
+
+  #revisions .row:first-of-type {
     margin-top: 10px;
   }
-  #revisions {
-    word-wrap: break-word;
-    .row, table {
-      margin-top: 10px;
-      padding-bottom: 10px;
-      border-bottom: 1px dotted;
-    }
-  }
-  img {
-    max-width: 670px;
-    height: auto;
-  }
-  .inline-diff {
-    width: 670px;
-  }
-  .markdown {
-    font-family: monospace;
-    font-size: 12px;
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    td {
-      width: 50%;
-      vertical-align: top;
-      max-width: 440px;
-      word-wrap: break-word;
-      white-space: pre-wrap;
-    }
-  }
-  .span8, .markdown {
+  ins,
+  .diff-ins {
+    code,
     img {
-      max-width: 400px;
-    }
-  }
-  ins, .diff-ins {
-    code, img {
-      border: 2px solid $success;
+      border: 2px solid var(--success);
     }
     img {
-      opacity: .75;
+      opacity: 0.75;
       filter: alpha(opacity=75);
     }
     a {
-      color: $success;
+      color: var(--success);
       text-decoration: none;
     }
   }
-  img.diff-ins, code.diff-ins {
-    border: 2px solid $success;
+  img.diff-ins,
+  code.diff-ins {
+    border: 2px solid var(--success);
   }
   img.diff-ins {
-    opacity: .75;
+    opacity: 0.75;
     filter: alpha(opacity=75);
   }
   .diff-ins {
-    background: scale-color($success, $lightness: 90%);
+    color: var(--primary);
+    background: var(--success-low);
   }
   ins {
-    color: $success;
-    background: scale-color($success, $lightness: 90%);
+    color: var(--primary);
+    background: var(--success-low);
+    text-decoration: none;
   }
-  del, .diff-del {
-    code, img {
-      border: 2px solid $danger;
+  del,
+  .diff-del {
+    code,
+    img {
+      border: 2px solid var(--danger);
     }
     img {
-      opacity: .5;
+      opacity: 0.5;
       filter: alpha(opacity=50);
     }
     a {
-      color: $danger;
+      color: var(--danger);
       text-decoration: none;
     }
   }
-  img.diff-del, code.diff-del {
-    border: 2px solid $danger;
+  img.diff-del,
+  code.diff-del {
+    border: 2px solid var(--danger);
   }
   img.diff-del {
-    opacity: .5;
+    opacity: 0.5;
     filter: alpha(opacity=50);
   }
   .diff-del {
-    background: scale-color($danger, $lightness: 60%);
+    color: var(--primary);
+    background: var(--danger-low);
+    text-decoration: none;
   }
   del {
-    color: $danger;
-    background: scale-color($danger, $lightness: 60%);
+    color: var(--primary);
+    background: var(--danger-low);
+    text-decoration: none;
   }
   span.date {
     font-weight: bold;
   }
   span.edit-reason {
-    background-color: lighten($highlight, 23%);
+    background-color: var(--highlight-medium);
     padding: 3px 5px 5px 5px;
   }
-  .modal-header {
-    height: 42px;
+  .d-icon-ban {
+    color: #f00;
+  }
+  .hidden-revision-either {
+    opacity: 0.5;
+  }
+  .hidden-revision-previous .row {
+    div:nth-of-type(1),
+    td:nth-of-type(1) {
+      opacity: 0.5;
+    }
+  }
+  .hidden-revision-current .row {
+    div:nth-of-type(2),
+    td:nth-of-type(2) {
+      opacity: 0.5;
+    }
   }
 }

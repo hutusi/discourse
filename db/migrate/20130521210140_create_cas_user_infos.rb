@@ -1,4 +1,6 @@
-class CreateCasUserInfos < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateCasUserInfos < ActiveRecord::Migration[4.2]
   def change
     create_table :cas_user_infos do |t|
       t.integer :user_id, null: false
@@ -11,7 +13,7 @@ class CreateCasUserInfos < ActiveRecord::Migration
       t.string :name
       t.string :link
 
-      t.timestamps
+      t.timestamps null: false
     end
     add_index :cas_user_infos, :user_id, unique: true
     add_index :cas_user_infos, :cas_user_id, unique: true

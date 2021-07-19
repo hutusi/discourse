@@ -1,363 +1,213 @@
-// styles that apply to the reply pane that slides up to compose replies
-
-// hack, this needs to be done cleaner
-.private-message input.span8 {
-  width: 47%;
-}
-
 .composer-popup-container {
-display: none;
+  display: none !important; // can be removed if inline JS CSS is removed from composer-popup
 }
 
 .composer-popup {
-display: none;
+  display: none !important; // can be removed if inline JS CSS is removed from composer-popup
 }
 
-
-
 #reply-control {
-  .toggle-preview, #draft-status, #file-uploading, .mobile-file-upload {
-    position: absolute;
-    bottom: -37px;
-    margin-top: 0;
-  }
-  .toggle-preview, .mobile-file-upload {
-    right: 5px;
-    text-decoration: underline;
-  }
-  #file-uploading {
-    left: 51%;
-    font-size: 12px;
-    color: scale-color($secondary, $lightness: 50%);
-  }
-  #draft-status {
-    right: 70px;
-    color: scale-color($primary, $lightness: 75%);
-    &.flash {
-      color: $danger;
-    }
-  }
-  @include transition(height 0.4s ease);
-  width: 100%;
-  z-index: 1039;
-  height: 0;
-  background-color: scale-color($primary, $lightness: 90%);
-  bottom: 0;
-  font-size: 14px;
-  position: fixed;
-  .toggler {
-    display: block;
-    width: 13px;
-    height: 13px;
-    right: 13px;
-    position: absolute;
-    font-size: 15px;
-    color: scale-color($primary, $lightness: 50%);
-    text-decoration: none;
-    &:before {
-      font-family: "FontAwesome";
-      content: "\f078";
-    }
-  }
-  a.cancel {
-    text-decoration: underline;
-    padding-left: 7px;
-    float: left;
-    margin-top: 6px;
-  }
-  .control-row {
-    margin: 0 0 0 5px;
-  }
-  .saving-text {
-    display: none;
-  }
-  .draft-text {
-    display: none;
-  }
-  .grippie {
-    display: none;
-  }
-  // The various states
-  &.open {
-    height: 300px;
-  }
-  &.closed {
-    height: 0 !important;
-  }
-  &.draft {
-    height: 60px !important;
-    cursor: pointer;
-    border-top: 1px solid scale-color($primary, $lightness: 90%);
-    .draft-text {
-      display: block;
-          position: absolute;
-          margin-right: 40px;
-    }
-    .toggler {
-      &:before {
-        font-family: "FontAwesome";
-        content: "\f077";
-      }
-    }
-  }
-  &.saving {
-    height: 40px !important;
-    border-top: 1px solid scale-color($primary, $lightness: 90%);
-    .saving-text {
-      display: block;
-    }
-    .toggler {
-      &:before {
-        font-family: "FontAwesome";
-        content: "\f00d";
-      }
-    }
-  }
-  .spinner {
-    position: absolute;
-    @include fades-in(0.25s);
-    @include border-radius-all(10px);
-    left: 250px;
-    top: 95px;
-    height: 100px;
-    width: 70px;
-    height: 70px;
-    text-indent: -9999em;
-    background: {
-      color: #000;
-      image: image-url("spinner_96_w.gif");
-      repeat: no-repeat;
-      size: 35px;
-      position: 17px 17px;
-    };
-  }
-  &.loading {
-    .spinner {
-      z-index: 1000;
-      @include visible;
-    }
-  }
+  z-index: z("mobile-composer");
   .reply-area {
-    max-width: 1500px;
-    margin-left: auto;
-    margin-right: auto;
-    float: none;
+    padding: 0 10px;
+    padding-bottom: env(safe-area-inset-bottom);
+    @media screen and (max-width: 374px) {
+      padding: 0 5px;
+    }
+    flex-grow: 1;
   }
 
-  // if this is a new topic, make room for the category field in the editor on
-  // a small screen mobile device
-  &.edit-title {
-    &.open {
-      height: 280px;
+  &.open {
+    height: 250px;
+    &.edit-title {
+      height: 100%;
     }
-    .contents {
-      input#reply-title {
-        padding: 7px 10px;
-        margin: 6px 10px 0 0;
+  }
+
+  .keyboard-visible &.open {
+    height: calc(var(--composer-vh, 1vh) * 100);
+  }
+
+  .keyboard-visible body.ios-safari-composer-hacks &.open .reply-area {
+    padding-bottom: 0px;
+  }
+
+  .reply-to {
+    margin: 5px 0;
+    .reply-details {
+      max-width: calc(100% - 75px);
+    }
+
+    // Protection for languages with long strings on very small screens. This
+    // has no effect on most users but we need it for some cases. If this is
+    // not added, "add edit reason" will overlap with the composer controls
+    @include breakpoint(mobile-small) {
+      .reply-details {
+        flex-wrap: wrap;
       }
-      .wmd-controls {
-        @include transition(top 0.3s ease);
-        top: 120px;
+
+      .display-edit-reason {
+        margin-top: 0.5em;
+      }
+
+      .composer-controls {
+        align-self: flex-start;
       }
     }
   }
-  .contents {
-    padding: 10px 10px 0 10px;
-    min-width: 1280px;
-    .form-element {
-      .chzn-container {
-        width: 400px;
-        margin-top: 6px;
-        a {
-          padding-top: 4px;
-          height: 28px;
-        }
-        b {
-          margin-top: 4px;
-        }
-      }
-      .category-combobox {
-        width: 430px;
-        @include medium-width { width: 285px; }
-        @include small-width { width: 220px; }
 
-        .chzn-drop {
-          left: -9000px;
-          width: 428px;
-          @include medium-width { width: 283px; }
-          @include small-width { width: 218px; }
-        }
-        .chzn-search input {
-          width: 378px;
-          @include medium-width { width: 233px; }
-          @include small-width { width: 168px; }
-        }
-      }
-    }
-    #reply-title {
-      margin-right: 10px;
-      &:disabled {
-        background-color: scale-color($primary, $lightness: 75%);
-      }
-    }
-    #wmd-input:disabled {
-      background-color: scale-color($primary, $lightness: 75%);
-    }
-    #wmd-input, #wmd-preview {
-      color: darken($primary, 40%);
-
-      video {
-        max-width: 100%;
-        height: auto;
-      }
-
-      audio {
-        max-width: 100%;
-      }
-    }
-    #wmd-preview {
-      border: 1px dashed scale-color($primary, $lightness: 90%);
-      overflow: auto;
-      visibility: visible;
-      p {
-        margin-top: 0;
-      }
-      &.hidden {
-        width: 0;
-        visibility: hidden;
-      }
-    }
-    #wmd-input {
-      bottom: 35px;
-    }
-    .submit-panel {
-      position: absolute;
-      display: block;
-      bottom: 2px;
+  .toggle-minimize {
+    .d-icon-chevron-down {
+      vertical-align: text-top;
     }
   }
+
+  &.draft {
+    z-index: z("footer-nav") + 1;
+    padding-bottom: env(safe-area-inset-bottom);
+
+    .toggle-toolbar,
+    .toggle-minimize {
+      top: 8px;
+    }
+    .draft-text {
+      width: calc(100% - 40px);
+      @include ellipsis;
+    }
+  }
+
+  #reply-title {
+    width: calc(100% - 20px);
+  }
+
   .category-input {
-    display: inline;
+    margin-bottom: 5px;
   }
-  .title-input .popup-tip {
-    width: 240px;
-    right: 5px;
-  }
-  .category-input .popup-tip {
-    width: 240px;
-    right: 5px;
-  }
-  .textarea-wrapper .popup-tip {
-    top: 28px;
-  }
-  button.btn.no-text {
-    margin: 7px 0 0 5px;
-    position: absolute;
-  }
-}
 
-#reply-control.edit-title.private-message {
-  .wmd-controls {
-    @include transition(top 0.3s ease);
-    top: 120px;
-  }
-}
-
-#reply-control {
-  &.hide-preview {
-    .wmd-controls {
-      #wmd-input {
-        width: 100%;
+  .submit-panel {
+    margin-bottom: 5px;
+    align-items: baseline;
+    .save-or-cancel {
+      flex: 1 1 auto;
+      #draft-status,
+      #file-uploading {
+        margin-left: 6px;
       }
-      .preview-wrapper {
+      .cancel {
+        font-size: 1.4em;
+        color: var(--primary-low-mid);
+        margin-left: 0.6em;
+        padding: 3px 6px;
+      }
+    }
+    .mobile-file-upload:not(.hidden),
+    .mobile-preview {
+      // Alignment fix, remove if converted to buttons
+      display: inline-flex;
+    }
+    .mobile-file-upload {
+      &.hidden + .mobile-preview {
+        // Hide preview button while file is uploading to make room for upload progress
         display: none;
       }
-      .textarea-wrapper {
-        width: 100%;
-      }
+    }
+
+    .mobile-preview {
+      margin-left: 0.25em;
     }
   }
-  .wmd-controls {
-    left: 10px;
-    right: 10px;
-    position: absolute;
-    top: 40px;
-    bottom: 54px;
-    display: block;
 
-    // this removes the topmost margin;
-    // if we don't have this, all posts would have extra space at the top
-    #wmd-preview > *:first-child {
-      margin-top: 0 !important;
-    }
+  .d-editor-textarea-wrapper {
+    width: 100%;
+  }
 
-    #wmd-input, #wmd-preview-scroller, #wmd-preview {
-      @include box-sizing(border-box);
-      width: 100%;
-      height: 100%;
-      min-height: 100%;
-      padding: 7px;
-      margin: 0;
-      background-color: $secondary;
-      word-wrap: break-word;
-
-      // set up proper header margins in post preview
-      h1, h2, h3, h4, h5, h6 {
-        margin: 30px 0 10px;
-      }
-      p {
-        margin-top: 19px;
+  &.show-preview {
+    .submit-panel {
+      padding-top: 10px;
+      z-index: z("fullscreen") + 1;
+      background-color: var(--secondary);
+      .cancel,
+      .mobile-file-upload,
+      .mobile-preview {
+        display: none;
       }
     }
-    #wmd-input, #wmd-preview-scroller {
-      position: absolute;
-      left: 0;
+    .d-editor-preview-wrapper {
+      position: fixed;
+      z-index: z("fullscreen");
       top: 0;
-      height: 100%;
-      min-height: 100%;
-      @include box-sizing(border-box);
-      border: 0;
-      @include border-radius-all(0);
-      transition: none;
-      font-size: 16px;
-    }
-    #wmd-preview-scroller {
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-weight: normal;
-      overflow: scroll;
-      visibility: hidden;
-      .marker, .caret {
-        display: inline-block;
-        vertical-align: top;
-      }
-    }
-    .textarea-wrapper, .preview-wrapper {
-      position: relative;
-      @include box-sizing(border-box);
-      height: 100%;
-      min-height: 100%;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--secondary);
+      border-bottom: 40px solid var(--secondary);
+      max-width: 100%;
       margin: 0;
-      padding: 0;
-      width: 50%;
-    }
-    .textarea-wrapper {
-      padding-right: 5px;
-      float: left;
-      .popup-tip {
-        margin-top: 3px;
-        right: 4px;
+      padding: 10px;
+      overflow: auto;
+      .d-editor-preview {
+        margin-bottom: 40px;
       }
-    }
-    .preview-wrapper {
-      padding-left: 5px;
-      float: right;
     }
   }
-  #wmd-button-bar {
-    top: 0;
-    position: absolute;
-    border-bottom: 1px solid scale-color($primary, $lightness: 90%);
-    background-color: $secondary;
-    z-index: 100;
+
+  &.hide-preview {
+    .d-editor-preview-wrapper {
+      display: none;
+    }
+  }
+
+  .d-editor-button-bar {
+    display: none;
+  }
+
+  .toolbar-visible .d-editor-button-bar {
+    display: flex;
+  }
+
+  .d-editor-button-bar .btn {
+    &.preview {
+      margin: 0;
+    }
+  }
+
+  .title-and-category,
+  .user-selector {
+    margin: 0;
+    .users-input {
+      margin-bottom: 5px;
+    }
+  }
+
+  .with-tags {
+    .mini-tag-chooser {
+      z-index: z("base");
+    }
+
+    .selected-name {
+      .name {
+        font-size: $font-down-1;
+        .badge-wrapper {
+          font-size: $font-0;
+        }
+      }
+    }
+  }
+
+  .user-selector {
+    flex-wrap: wrap;
+  }
+
+  .users-input,
+  .add-warning {
+    width: 100%;
+  }
+
+  .add-warning {
+    margin: 0 0 5px 5px;
+  }
+
+  .whisper {
+    margin-right: 5px;
   }
 }

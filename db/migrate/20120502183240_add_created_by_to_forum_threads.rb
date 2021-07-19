@@ -1,4 +1,6 @@
-class AddCreatedByToForumThreads < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddCreatedByToForumThreads < ActiveRecord::Migration[4.2]
   def up
     add_column :forum_threads, :user_id, :integer
 

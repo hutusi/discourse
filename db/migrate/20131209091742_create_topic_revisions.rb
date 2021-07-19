@@ -1,11 +1,13 @@
-class CreateTopicRevisions < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateTopicRevisions < ActiveRecord::Migration[4.2]
   def up
     create_table :topic_revisions do |t|
       t.belongs_to :user
       t.belongs_to :topic
       t.text :modifications
       t.integer :number
-      t.timestamps
+      t.timestamps null: false
     end
 
     execute "INSERT INTO topic_revisions (user_id, topic_id, modifications, number, created_at, updated_at)

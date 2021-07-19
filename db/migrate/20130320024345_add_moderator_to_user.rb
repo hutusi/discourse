@@ -1,4 +1,6 @@
-class AddModeratorToUser < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddModeratorToUser < ActiveRecord::Migration[4.2]
   def up
     add_column :users, :moderator, :boolean, default: false
     execute "UPDATE users SET trust_level = 1, moderator = 't' where trust_level = 5"

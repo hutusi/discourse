@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module EmbedHelper
 
   def embed_post_date(dt)
@@ -14,5 +16,10 @@ module EmbedHelper
     end
   end
 
-end
+  def get_html(post)
+    key = "js.action_codes.#{post.action_code}"
+    cooked = post.cooked.blank? ? I18n.t(key, when: nil).humanize : post.cooked
 
+    raw PrettyText.format_for_email(cooked, post)
+  end
+end

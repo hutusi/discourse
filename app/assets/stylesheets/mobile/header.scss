@@ -3,248 +3,89 @@
 // --------------------------------------------------
 
 .d-header {
-  padding-left: 10px !important;
-  padding-right: 10px !important;
-  min-width: 100%;
-  position: absolute;
-  top: 0;
-  z-index: 1001;
-  background-color: $secondary;
-  box-shadow: 0 0 3px rgba($primary, .6);
+  height: 3.66em;
 
-  .docked & {
-    position: fixed;
-
-  }
-
-  a.star {float: left;}
-  .contents {
-    margin: 10px 0;
-  }
+  // some protection for text-only site titles
   .title {
-    display: table;
-    float: left;
-    height: 40px;
-    > a {
-      display: table-cell;
-      vertical-align: middle;
-    }
-  }
-  #site-logo {
-    max-height: 40px;
-    max-width: 122px;
-  }
-  .fa-home {
-    font-size: 20px;
-    line-height: 40px;
-  }
-  .panel {
-    float: right;
-    position: relative;
-    margin-right: 20px;
-  }
-  .current-username {
-    float: left;
-    display: none;
+    max-width: 75%;
+    @include ellipsis;
+    -webkit-animation: fadein 0.5s;
+    animation: fadein 0.5s;
+    // This acts as a placeholder if for some reason the small logo takes a while
+    // to load - prevents topic title from shifting after the small logo loads.
+    // It's hardcoded to 36px because that's the width we use inline for the small
+    // logo in the home-logo widget.
+    min-width: 36px;
     a {
-      color: darken($primary, 40%);
-      font-size: 14px;
-      line-height: 40px;
-    }
-  }
-  button.login-button {
-    float: left;
-    margin-top: 7px;
-    padding: 6px 10px;
-    .fa { margin-right: 3px; }
-  }
-  .icons {
-    float: left;
-    text-align: center;
-    margin: 0 0 0 5px;
-    list-style: none;
-    > li {
-      float: left;
-    }
-    .icon {
       display: block;
-      padding: 4px;
-      color: scale-color($primary, $lightness: 50%);
-      text-decoration: none;
-      cursor: pointer;
-      &:hover {
-        color: $primary;
-        background-color: scale-color($primary, $lightness: 75%);
-      }
-      &:active {
-        color: $primary;
-        background-color: scale-color($primary, $lightness: 75%);
-      }
-    }
-    .active .icon {
-      position: relative;
-      color: scale-color($primary, $lightness: 75%);
-      background-color: $secondary;
-      border: 1px solid scale-color($primary, $lightness: 90%);
-      cursor: default;
-      &:after {
-        display: block;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        z-index: 1101;
-        width: 100%;
-        height: 0;
-        content: "";
-        border-top: 1px solid $secondary;
-      }
-    }
-    [class^="fa fa-"] {
-      width: 32px;
-      height: 32px;
-      font-size: 20px;
-      line-height: 32px;
-      display: inline-block;
-    }
-    .notifications {
-      position: relative;
-    }
-    .badge-notification {
-      position: absolute;
-      top: -9px;
-      z-index: 1;
-      margin-left: 0;
-    }
-    .unread-notifications {
-      right: -4px;
-      background-color: scale-color($tertiary, $lightness: 40%);
-      color: $tertiary;
-    }
-    .unread-private-messages {
-      left: -4px;
-      background-color: $success;
+      width: 100%;
     }
   }
-  .flagged-posts {
-    background-color: $danger;
+
+  #site-logo {
+    max-height: 2.4em;
+    max-width: 100%;
+  }
+  #site-text-logo {
+    margin: 0;
+    font-size: $font-up-1;
+  }
+  .extra-info-wrapper {
+    .extra-info {
+      // header title should not be centered if there's no tags / categories
+      &:not(.two-rows) {
+        min-height: 2.25em;
+      }
+      .header-title {
+        font-size: $font-0;
+        // the margin-bottom here is fragile, changing it can cause tag alignment issues
+        margin: 0 0 0.35em 0;
+        .archetype-private_message & {
+          // PMs might have participant avatars in the header
+          margin: 0 0 0.15em 0;
+        }
+      }
+      .private-message-glyph-wrapper {
+        float: left;
+      }
+    }
+  }
+  button.sign-up-button {
+    display: none;
+  }
+
+  // Hide header avatar + icons while topic title is visible in mobile header
+  .extra-info-wrapper + .panel {
+    .header-buttons,
+    .d-header-icons {
+      display: none;
+    }
+  }
+  // Fade in header avatar + icons if topic title is not visible in mobile header
+  .panel {
+    animation: fadein 0.5s;
+  }
+  // A rendering bug in safari causes header SVGs to jitter after animations.
+  // translateZ() forces gpu rendering which fixes the issue.
+  .d-header-icons {
+    -webkit-transform: translateZ(0);
   }
 }
 
-#main {
-  position: relative;
+.d-header-icons {
+  .d-icon {
+    line-height: $line-height-medium;
+  }
+  .active .icon {
+    &:after {
+      margin-top: -1px;
+    }
+  }
 }
 
 #main-outlet {
-  padding-top: 60px;
-}
-
-// Dropdowns
-// --------------------------------------------------
-
-.d-dropdown {
-  display: none;
-  width: 290px;
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: 1100;
-  margin-top: -1px;
-  border: 1px solid scale-color($primary, $lightness: 90%);;
-  background-color: $secondary;
-  @include box-shadow(0 1px 1px rgba($primary, 0.2));
-
-  // Common
-
-  ul {
-    margin: 0;
-    list-style: none;
-  }
-  li {
-    padding: 5px;
-    font-size: 13px;
-    line-height: 16px;
-    .fa {
-      margin-right: 3px;
-    }
-  }
-  .heading {
-    color: $primary;
-    font-weight: bold;
-    font-size: 12px;
-    line-height: 15px;
-
-
-  }
-  .selected {
-    background-color: scale-color($tertiary, $lightness: 75%);
-  }
-
-  // Notifications
-
-  &#notifications-dropdown {
-    .fa {
-      color: #777;
-    }
-    li {
-      background-color: scale-color($tertiary, $lightness: 85%);
-    }
-    .read {
-      background-color: $secondary;
-    }
-    .none {
-      padding: 5px;
-    }
-    .loading {
-      padding: 10px;
-      display: block;
-      color: #777;
-      font-size: 24px;
-      text-align: center;
-    }
-  }
-
-  // Search
-
-  input[type='text'] {
-    width: 267px;
-    height: 22px;
-    margin: 5px;
-    padding: 5px;
-    font-size: 16px;
-    &:focus {
-      @include box-shadow((inset 0 1px 1px rgba($primary, 0.075), 0 0 4px rgba(82, 168, 236, 0.6)));
-    }
-  }
-  .searching {
-    display: block;
-    position: absolute;
-    top: 13px;
-    right: 13px;
-    color: #777;
-    font-size: 18px;
-  }
-  .no-results {
-    padding: 0 5px 5px;
-  }
-  .filter {
-    float: right;
-  }
-
-  // Categories
-
-  .category {
-    float: left;
-    background-color: transparent;
-  }
-
-  &#user-dropdown {
-    width: 155px;
-  }
-
-  .btn {
-    padding: 2px 8px;
-    .fa {
-      margin-right: 5px;
-    }
+  @media only screen and (orientation: landscape) {
+    padding-right: env(safe-area-inset-right);
+    padding-left: env(safe-area-inset-left);
   }
 }

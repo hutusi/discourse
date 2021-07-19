@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # used during local testing, simulates a user active on the site.
 #
 # by default 1 new topic every 30 sec, 1 reply to last topic every 30 secs
@@ -13,7 +15,7 @@ def sentence
     gabbler.learn(story)
   end
 
-  sentence = ""
+  sentence = +""
   until sentence.length > 800 do
     sentence << @gabbler.sentence
     sentence << "\n"
@@ -40,17 +42,15 @@ unless ["profile", "development"].include? Rails.env
   exit
 end
 
-
 user = User.find(user_id)
 last_topics = Topic.order('id desc').limit(10).pluck(:id)
 
 puts "Simulating activity for user id #{user.id}: #{user.name}"
 
-
 while true
   puts "Creating a random topic"
   category = Category.where(read_restricted: false).order('random()').first
-  PostCreator.create(user, raw: sentence, title: sentence[0..50].strip, category:  category.name)
+  PostCreator.create(user, raw: sentence, title: sentence[0..50].strip, category: category.id)
 
   puts "creating random reply"
   PostCreator.create(user, raw: sentence, topic_id: last_topics.sample)

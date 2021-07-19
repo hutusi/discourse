@@ -1,16 +1,26 @@
+# frozen_string_literal: true
+
 class UserAuthenticator
-  def initialize(user, session, authenticator_finder = Users::OmniauthCallbacksController)
+
+  def initialize(user, session, authenticator_finder: Users::OmniauthCallbacksController, require_password: true)
     @user = user
-    @session = session[:authentication]
+    @session = session
+    if session&.dig(:authentication) && session[:authentication].is_a?(Hash)
+      @auth_result = Auth::Result.from_session_data(session[:authentication], user: user)
+    end
     @authenticator_finder = authenticator_finder
+    @require_password = require_password
   end
 
   def start
     if authenticated?
       @user.active = true
-    else
+      @auth_result.apply_user_attributes!
+    elsif @require_password
       @user.password_required!
     end
+
+    @user.skip_email_validation = true if @auth_result && @auth_result.skip_email_validation
   end
 
   def has_authenticator?
@@ -19,16 +29,30 @@ class UserAuthenticator
 
   def finish
     if authenticator
-      authenticator.after_create_account(@user, @session)
+      authenticator.after_create_account(@user, @auth_result)
+      confirm_email
     end
+    @session[:authentication] = @auth_result = nil if @session&.dig(:authentication)
+  end
 
-    @session = nil
+  def email_valid?
+    @auth_result&.email_valid
+  end
+
+  def authenticated?
+    return false if !@auth_result
+    return false if @auth_result&.email&.downcase != @user.email.downcase
+    return false if !@auth_result.email_valid
+    true
   end
 
   private
 
-  def authenticated?
-    @session && @session[:email] == @user.email && @session[:email_valid]
+  def confirm_email
+    if authenticated?
+      EmailToken.confirm(@user.email_tokens.first.token)
+      @user.set_automatic_groups
+    end
   end
 
   def authenticator
@@ -38,6 +62,7 @@ class UserAuthenticator
   end
 
   def authenticator_name
-    @session && @session[:authenticator_name]
+    @auth_result&.authenticator_name
   end
+
 end

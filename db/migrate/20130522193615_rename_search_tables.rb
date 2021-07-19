@@ -1,4 +1,6 @@
-class RenameSearchTables < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class RenameSearchTables < ActiveRecord::Migration[4.2]
   def up
     rename_table :users_search, :user_search_data
     rename_column :user_search_data, :id, :user_id

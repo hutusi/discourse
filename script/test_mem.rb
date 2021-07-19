@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 start = Time.now
 require 'objspace'
 require File.expand_path("../../config/environment", __FILE__)
@@ -7,7 +9,7 @@ I18n.t(:posts)
 
 # load up all models and schema
 (ActiveRecord::Base.connection.tables - %w[schema_migrations]).each do |table|
-table.classify.constantize.first rescue nil
+  table.classify.constantize.first rescue nil
 end
 
 # router warm up
@@ -26,5 +28,3 @@ s = ObjectSpace.each_object(String).map do |o|
 end
 
 puts "Total strings: #{s.count} space used: #{s.sum} bytes"
-
-

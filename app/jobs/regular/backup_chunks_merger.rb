@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 module Jobs
 
-  class BackupChunksMerger < Jobs::Base
-    sidekiq_options retry: false
+  class BackupChunksMerger < ::Jobs::Base
+    sidekiq_options queue: 'critical', retry: false
 
     def execute(args)
       filename   = args[:filename]
@@ -12,29 +14,25 @@ module Jobs
       raise Discourse::InvalidParameters.new(:identifier) if identifier.blank?
       raise Discourse::InvalidParameters.new(:chunks)     if chunks <= 0
 
-      backup_path = "#{Backup.base_directory}/#{filename}"
+      backup_path = "#{BackupRestore::LocalBackupStore.base_directory}/#{filename}"
       tmp_backup_path = "#{backup_path}.tmp"
+      # path to tmp directory
+      tmp_directory = File.dirname(BackupRestore::LocalBackupStore.chunk_path(identifier, filename, 0))
 
-      # delete destination files
-      File.delete(backup_path) rescue nil
-      File.delete(tmp_backup_path) rescue nil
+      # merge all chunks
+      HandleChunkUpload.merge_chunks(
+        chunks,
+        upload_path: backup_path,
+        tmp_upload_path: tmp_backup_path,
+        identifier: identifier,
+        filename: filename,
+        tmp_directory: tmp_directory
+      )
 
-      # merge all the chunks
-      File.open(tmp_backup_path, "a") do |backup|
-        (1..chunks).each do |chunk_number|
-          # path to chunk
-          chunk_path = Backup.chunk_path(identifier, filename, chunk_number)
-          # add chunk to backup
-          backup << File.open(chunk_path).read
-        end
-      end
-      
-      # rename tmp backup to final backup name
-      FileUtils.mv(tmp_backup_path, backup_path, force: true)
-
-      # remove tmp directory
-      tmp_directory = File.dirname(Backup.chunk_path(identifier, filename, 0))
-      FileUtils.rm_rf(tmp_directory) rescue nil
+      # push an updated list to the clients
+      store = BackupRestore::BackupStore.create
+      data = ActiveModel::ArraySerializer.new(store.files, each_serializer: BackupFileSerializer).as_json
+      MessageBus.publish("/admin/backups", data, group_ids: [Group::AUTO_GROUPS[:staff]])
     end
 
   end

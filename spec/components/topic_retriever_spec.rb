@@ -1,46 +1,84 @@
-require 'spec_helper'
-require_dependency 'topic_retriever'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe TopicRetriever do
 
   let(:embed_url) { "http://eviltrout.com/2013/02/10/why-discourse-uses-emberjs.html" }
-  let(:topic_retriever) { TopicRetriever.new(embed_url) }
+  let(:author_username) { "eviltrout" }
+  let(:topic_retriever) { TopicRetriever.new(embed_url, author_username: author_username) }
 
-  it "does not call perform_retrieve when embeddable_host is not set" do
-    SiteSetting.stubs(:embeddable_host).returns(nil)
-    topic_retriever.expects(:perform_retrieve).never
-    topic_retriever.retrieve
+  it "can initialize without optional parameters" do
+    t = TopicRetriever.new(embed_url)
+    expect(t).to be_present
   end
 
-  it "does not call perform_retrieve when embeddable_host is different than the host of the URL" do
-    SiteSetting.stubs(:embeddable_host).returns("eviltuna.com")
-    topic_retriever.expects(:perform_retrieve).never
-    topic_retriever.retrieve
-  end
+  describe "#retrieve" do
+    context "when host is invalid" do
+      before do
+        topic_retriever.stubs(:invalid_url?).returns(true)
+      end
 
-  it "does not call perform_retrieve when the embed url is not a url" do
-    r = TopicRetriever.new("not a url")
-    r.expects(:perform_retrieve).never
-    r.retrieve
-  end
-
-  context "with a valid host" do
-    before do
-      SiteSetting.stubs(:embeddable_host).returns("eviltrout.com")
+      it "does not perform_retrieve" do
+        topic_retriever.expects(:perform_retrieve).never
+        topic_retriever.retrieve
+      end
     end
 
-    it "calls perform_retrieve if it hasn't been retrieved recently" do
-      topic_retriever.expects(:perform_retrieve).once
-      topic_retriever.expects(:retrieved_recently?).returns(false)
-      topic_retriever.retrieve
+    context "when topics have been retrieved recently" do
+      before do
+        topic_retriever.stubs(:retrieved_recently?).returns(true)
+      end
+
+      it "does not perform_retrieve" do
+        topic_retriever.expects(:perform_retrieve).never
+        topic_retriever.retrieve
+      end
     end
 
-    it "doesn't call perform_retrieve if it's been retrieved recently" do
-      topic_retriever.expects(:perform_retrieve).never
-      topic_retriever.expects(:retrieved_recently?).returns(true)
-      topic_retriever.retrieve
+    context "when host is valid" do
+      before do
+        Fabricate(:embeddable_host, host: 'http://eviltrout.com/')
+      end
+
+      context "when topics have been retrieved recently" do
+        before do
+          topic_retriever.stubs(:retrieved_recently?).returns(true)
+        end
+
+        it "does not perform_retrieve" do
+          topic_retriever.expects(:perform_retrieve).never
+          topic_retriever.retrieve
+        end
+      end
+
+      context "when topics have not been retrieved recently" do
+        before do
+          topic_retriever.stubs(:retrieved_recently?).returns(false)
+        end
+
+        it "does perform_retrieve" do
+          topic_retriever.expects(:perform_retrieve).once
+          topic_retriever.retrieve
+        end
+      end
     end
 
+    context "when host is invalid" do
+      before do
+        Fabricate(:embeddable_host, host: 'http://not-eviltrout.com/')
+      end
+
+      it "does not perform_retrieve" do
+        topic_retriever.expects(:perform_retrieve).never
+        topic_retriever.retrieve
+      end
+    end
+
+    it "works with URLs with whitespaces" do
+      expect { TopicRetriever.new(" https://example.com ").retrieve }
+        .not_to raise_error
+    end
   end
 
 end

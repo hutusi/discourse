@@ -1,4 +1,6 @@
-class AddDisplayUsernameToUsers < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddDisplayUsernameToUsers < ActiveRecord::Migration[4.2]
   def up
     add_column :users, :display_username, :string
     execute "UPDATE users SET display_username = username"

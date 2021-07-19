@@ -1,19 +1,45 @@
-require_dependency 'oneboxer'
+# frozen_string_literal: true
 
 class PostAnalyzer
 
   def initialize(raw, topic_id)
-    @raw  = raw
+    @raw = raw
     @topic_id = topic_id
+    @onebox_urls = []
+    @found_oneboxes = false
+  end
+
+  def found_oneboxes?
+    @found_oneboxes
+  end
+
+  def has_oneboxes?
+    return false unless @raw.present?
+
+    cooked_stripped
+    found_oneboxes?
   end
 
   # What we use to cook posts
-  def cook(*args)
-    cooked = PrettyText.cook(*args)
+  def cook(raw, opts = {})
+    cook_method = opts[:cook_method]
+    return raw if cook_method == Post.cook_methods[:raw_html]
 
-    result = Oneboxer.apply(cooked) do |url, elem|
-      Oneboxer.invalidate(url) if args.last[:invalidate_oneboxes]
-      Oneboxer.cached_onebox url
+    if cook_method == Post.cook_methods[:email]
+      cooked = EmailCook.new(raw).cook(opts)
+    else
+      cooked = PrettyText.cook(raw, opts)
+    end
+
+    result = Oneboxer.apply(cooked) do |url|
+      @onebox_urls << url
+      if opts[:invalidate_oneboxes]
+        Oneboxer.invalidate(url)
+        InlineOneboxer.invalidate(url)
+      end
+      onebox = Oneboxer.cached_onebox(url)
+      @found_oneboxes = true if onebox.present?
+      onebox
     end
 
     cooked = result.to_html if result.changed?
@@ -21,13 +47,13 @@ class PostAnalyzer
   end
 
   # How many images are present in the post
-  def image_count
+  def embedded_media_count
     return 0 unless @raw.present?
 
-    cooked_document.search("img").reject do |t|
-      dom_class = t["class"]
-      if dom_class
-        (Post.white_listed_image_classes & dom_class.split(" ")).count > 0
+    # TODO - do we need to look for tags other than img, video and audio?
+    cooked_stripped.css("img", "video", "audio").reject do |t|
+      if dom_class = t["class"]
+        (Post.allowed_image_classes & dom_class.split).count > 0
       end
     end.count
   end
@@ -36,8 +62,8 @@ class PostAnalyzer
   def attachment_count
     return 0 unless @raw.present?
 
-    attachments = cooked_document.css("a.attachment[href^=\"#{Discourse.store.absolute_base_url}\"]")
-    attachments += cooked_document.css("a.attachment[href^=\"#{Discourse.store.relative_base_url}\"]") if Discourse.store.internal?
+    attachments  = cooked_stripped.css("a.attachment[href^=\"#{Discourse.store.absolute_base_url}\"]")
+    attachments += cooked_stripped.css("a.attachment[href^=\"#{Discourse.store.relative_base_url}\"]") if Discourse.store.internal?
     attachments.count
   end
 
@@ -45,30 +71,41 @@ class PostAnalyzer
     return [] if @raw.blank?
     return @raw_mentions if @raw_mentions.present?
 
-    # strip quotes and code blocks
-    cooked_stripped = cooked_document
-    cooked_stripped.search("aside.quote").remove
-    cooked_stripped.search("pre").remove
-    cooked_stripped.search("code").remove
+    raw_mentions = cooked_stripped.css('.mention, .mention-group').map do |e|
+      if name = e.inner_text
+        name = name[1..-1]
+        name = User.normalize_username(name)
+        name
+      end
+    end
 
-    results = cooked_stripped.to_html.scan(PrettyText.mention_matcher)
-    @raw_mentions = results.uniq.map { |un| un.first.downcase.gsub!(/^@/, '') }
+    raw_mentions.compact!
+    raw_mentions.uniq!
+    @raw_mentions = raw_mentions
+  end
+
+  # from rack ... compat with ruby 2.2
+  def self.parse_uri_rfc2396(uri)
+    @parser ||= defined?(URI::RFC2396_Parser) ? URI::RFC2396_Parser.new : URI
+    @parser.parse(uri)
   end
 
   # Count how many hosts are linked in the post
   def linked_hosts
-    return {} if raw_links.blank?
+    all_links = raw_links + @onebox_urls
+
+    return {} if all_links.blank?
     return @linked_hosts if @linked_hosts.present?
 
     @linked_hosts = {}
 
-    raw_links.each do |u|
+    all_links.each do |u|
       begin
-        uri = URI.parse(u)
+        uri = self.class.parse_uri_rfc2396(u)
         host = uri.host
         @linked_hosts[host] ||= 1 unless host.nil?
-      rescue URI::InvalidURIError
-        # An invalid URI does not count as a raw link.
+      rescue URI::Error
+        # An invalid URI does not count as a host
         next
       end
     end
@@ -82,12 +119,14 @@ class PostAnalyzer
     return @raw_links if @raw_links.present?
 
     @raw_links = []
-
-    cooked_document.search("a").each do |l|
+    cooked_stripped.css("a").each do |l|
       # Don't include @mentions in the link count
-      next if l.attributes['href'].nil? || link_is_a_mention?(l)
-      url = l.attributes['href'].to_s
-      @raw_links << url
+      next if link_is_a_mention?(l)
+      # Don't include heading anchor in the link count
+      next if link_is_an_anchor?(l)
+      # Don't include hashtags in the link count
+      next if link_is_a_hashtag?(l)
+      @raw_links << l['href'].to_s
     end
 
     @raw_links
@@ -95,18 +134,31 @@ class PostAnalyzer
 
   # How many links are present in the post
   def link_count
-    raw_links.size
+    raw_links.size + @onebox_urls.size
+  end
+
+  def cooked_stripped
+    @cooked_stripped ||= begin
+      doc = Nokogiri::HTML5.fragment(cook(@raw, topic_id: @topic_id))
+      doc.css("pre .mention, aside.quote > .title, aside.quote .mention, aside.quote .mention-group, .onebox, .elided").remove
+      doc
+    end
   end
 
   private
 
-  def cooked_document
-    @cooked_document ||= Nokogiri::HTML.fragment(cook(@raw, topic_id: @topic_id))
+  def link_is_a_mention?(l)
+    href = l['href'].to_s
+    l['class'].to_s['mention'] && (href.start_with?("#{Discourse.base_path}/u/") || href.start_with?("#{Discourse.base_path}/users/"))
   end
 
-  def link_is_a_mention?(l)
-    html_class = l.attributes['class']
-    return false if html_class.nil?
-    html_class.to_s == 'mention' && l.attributes['href'].to_s =~ /^\/users\//
+  def link_is_an_anchor?(l)
+    l['class'].to_s['anchor'] && l['href'].to_s.start_with?('#')
   end
+
+  def link_is_a_hashtag?(l)
+    href = l['href'].to_s
+    l['class'].to_s['hashtag'] && (href.start_with?("#{Discourse.base_path}/c/") || href.start_with?("#{Discourse.base_path}/tag/"))
+  end
+
 end

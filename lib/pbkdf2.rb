@@ -1,17 +1,14 @@
-# Note: the pbkdf2 gem is bust on 2.0, the logic is so simple I am not sure it makes sense to have this in a gem atm (Sam)
-#
-# Also PBKDF2 monkey patches string ... don't like that at all
-#
-# Happy to move back to PBKDF2 ruby gem provided:
-#
-# 1. It works on Ruby 2.0
-# 2. It works on 1.9.3
-# 3. It does not monkey patch string
+# frozen_string_literal: true
+
+# Note: This logic was originally extracted from the Pbkdf2 gem to fix Ruby 2.0
+# issues, but that gem has gone stale so we won't be returning to it.
 
 require 'openssl'
-require 'xor'
+require 'xorcist'
+require 'xorcist/refinements'
 
 class Pbkdf2
+  using Xorcist::Refinements
 
   def self.hash_password(password, salt, iterations, algorithm = "sha256")
 
@@ -20,19 +17,14 @@ class Pbkdf2
     u = ret = prf(h, password, salt + [1].pack("N"))
 
     2.upto(iterations) do
-     u = prf(h, password, u)
-     ret.xor!(u)
+      u = prf(h, password, u)
+      ret.xor!(u)
     end
 
-    ret.bytes.map{|b| ("0" + b.to_s(16))[-2..-1]}.join("")
+    ret.bytes.map { |b| ("0" + b.to_s(16))[-2..-1] }.join("")
   end
 
   protected
-
-  # fallback xor in case we need it for jruby ... way slower
-  def self.xor(x,y)
-    x.bytes.zip(y.bytes).map{|x,y| x ^ y}.pack('c*')
-  end
 
   def self.prf(hash_function, password, data)
     OpenSSL::HMAC.digest(hash_function, password, data)

@@ -1,13 +1,22 @@
+# frozen_string_literal: true
+
 class PostSerializer < BasicPostSerializer
 
   # To pass in additional information we might need
-  attr_accessor :topic_slug,
-                :topic_view,
-                :parent_post,
-                :add_raw,
-                :single_post_link_counts,
-                :draft_sequence,
-                :post_actions
+  INSTANCE_VARS ||= [
+    :parent_post,
+    :add_raw,
+    :add_title,
+    :single_post_link_counts,
+    :draft_sequence,
+    :post_actions,
+    :all_post_actions,
+    :add_excerpt
+  ]
+
+  INSTANCE_VARS.each do |v|
+    self.public_send(:attr_accessor, v)
+  end
 
   attributes :post_number,
              :post_type,
@@ -15,28 +24,44 @@ class PostSerializer < BasicPostSerializer
              :reply_count,
              :reply_to_post_number,
              :quote_count,
-             :avg_time,
              :incoming_link_count,
              :reads,
+             :readers_count,
              :score,
              :yours,
-             :topic_slug,
              :topic_id,
+             :topic_slug,
+             :topic_title,
+             :topic_html_title,
+             :category_id,
              :display_username,
              :primary_group_name,
+             :flair_name,
+             :flair_url,
+             :flair_bg_color,
+             :flair_color,
              :version,
              :can_edit,
              :can_delete,
              :can_recover,
+             :can_wiki,
              :link_counts,
              :read,
              :user_title,
+             :title_is_group,
              :reply_to_user,
              :bookmarked,
+             :bookmark_reminder_at,
+             :bookmark_id,
+             :bookmark_reminder_type,
+             :bookmark_name,
+             :bookmark_auto_delete_preference,
              :raw,
              :actions_summary,
              :moderator?,
+             :admin?,
              :staff?,
+             :group_moderator,
              :user_id,
              :draft_sequence,
              :hidden,
@@ -46,15 +71,88 @@ class PostSerializer < BasicPostSerializer
              :deleted_by,
              :user_deleted,
              :edit_reason,
-             :can_view_edit_history
+             :can_view_edit_history,
+             :wiki,
+             :user_custom_fields,
+             :static_doc,
+             :via_email,
+             :is_auto_generated,
+             :action_code,
+             :action_code_who,
+             :notice,
+             :last_wiki_edit,
+             :locked,
+             :excerpt,
+             :reviewable_id,
+             :reviewable_score_count,
+             :reviewable_score_pending_count
 
+  def initialize(object, opts)
+    super(object, opts)
+
+    PostSerializer::INSTANCE_VARS.each do |name|
+      if opts.include? name
+        self.public_send("#{name}=", opts[name])
+      end
+    end
+  end
+
+  def topic_slug
+    topic&.slug
+  end
+
+  def include_topic_title?
+    @add_title
+  end
+
+  def include_topic_html_title?
+    @add_title
+  end
+
+  def include_category_id?
+    @add_title
+  end
+
+  def include_excerpt?
+    @add_excerpt
+  end
+
+  def topic_title
+    topic&.title
+  end
+
+  def topic_html_title
+    topic&.fancy_title
+  end
+
+  def category_id
+    topic&.category_id
+  end
 
   def moderator?
-    object.user.try(:moderator?) || false
+    !!(object&.user&.moderator?)
+  end
+
+  def admin?
+    !!(object&.user&.admin?)
   end
 
   def staff?
-    object.user.try(:staff?) || false
+    !!(object&.user&.staff?)
+  end
+
+  def group_moderator
+    !!@group_moderator
+  end
+
+  def include_group_moderator?
+    @group_moderator ||= begin
+      if @topic_view
+        @topic_view.category_group_moderator_user_ids.include?(object.user_id)
+      else
+        object&.user&.guardian&.is_category_group_moderator?(object&.topic&.category)
+      end
+    end
   end
 
   def yours
@@ -73,8 +171,12 @@ class PostSerializer < BasicPostSerializer
     scope.can_recover_post?(object)
   end
 
+  def can_wiki
+    scope.can_wiki?(object)
+  end
+
   def display_username
-    object.user.try(:name)
+    object.user&.name
   end
 
   def primary_group_name
@@ -85,6 +187,22 @@ class PostSerializer < BasicPostSerializer
     else
       object.user.primary_group.name if object.user.primary_group
     end
+  end
+
+  def flair_name
+    object.user&.flair_group&.name
+  end
+
+  def flair_url
+    object.user&.flair_group&.flair_url
+  end
+
+  def flair_bg_color
+    object.user&.flair_group&.flair_bg_color
+  end
+
+  def flair_color
+    object.user&.flair_group&.flair_color
   end
 
   def link_counts
@@ -111,11 +229,19 @@ class PostSerializer < BasicPostSerializer
   end
 
   def user_title
-    object.user.try(:title)
+    object&.user&.title
+  end
+
+  def title_is_group
+    object&.user&.title == object.user&.primary_group&.title
+  end
+
+  def include_title_is_group?
+    object&.user&.title.present?
   end
 
   def trust_level
-    object.user.try(:trust_level)
+    object&.user&.trust_level
   end
 
   def reply_to_user
@@ -123,10 +249,6 @@ class PostSerializer < BasicPostSerializer
       username: object.reply_to_user.username,
       avatar_template: object.reply_to_user.avatar_template
     }
-  end
-
-  def bookmarked
-    true
   end
 
   def deleted_by
@@ -137,36 +259,54 @@ class PostSerializer < BasicPostSerializer
     scope.is_staff? && object.deleted_by.present?
   end
 
+  # Helper function to decide between #post_actions and @all_post_actions
+  def actions
+    return post_actions if post_actions.present?
+    return all_post_actions[object.id] if all_post_actions.present?
+    nil
+  end
+
   # Summary of the actions taken on this post
   def actions_summary
     result = []
-    PostActionType.types.each do |sym, id|
-      next if [:bookmark].include?(sym)
+    can_see_post = scope.can_see_post?(object)
+
+    PostActionType.types.except(:bookmark).each do |sym, id|
       count_col = "#{sym}_count".to_sym
 
-      count = object.send(count_col) if object.respond_to?(count_col)
-      count ||= 0
-      action_summary = {id: id,
-                        count: count,
-                        hidden: (sym == :vote),
-                        can_act: scope.post_can_act?(object, sym, taken_actions: post_actions)}
+      count = object.public_send(count_col) if object.respond_to?(count_col)
+      summary = { id: id, count: count }
+      summary[:hidden] = true if sym == :vote
 
-      # The following only applies if you're logged in
-      if action_summary[:can_act] && scope.current_user.present?
-        action_summary[:can_clear_flags] = scope.is_staff? && PostActionType.flag_types.values.include?(id)
+      if scope.post_can_act?(object, sym, opts: { taken_actions: actions }, can_see_post: can_see_post)
+        summary[:can_act] = true
       end
 
-      if post_actions.present? && post_actions.has_key?(id)
-        action_summary[:acted] = true
-        action_summary[:can_undo] = scope.can_delete?(post_actions[id])
+      if sym == :notify_user &&
+         (
+           (scope.current_user.present? && scope.current_user == object.user) ||
+           (object.user && object.user.bot?)
+         )
+
+        summary.delete(:can_act)
+      end
+
+      if actions.present? && actions.has_key?(id)
+        summary[:acted] = true
+        summary[:can_undo] = true if scope.can_delete?(actions[id])
       end
 
       # only show public data
       unless scope.is_staff? || PostActionType.public_types.values.include?(id)
-        action_summary[:count] = action_summary[:acted] ? 1 : 0
+        summary[:count] = summary[:acted] ? 1 : 0
       end
 
-      result << action_summary
+      summary.delete(:count) if summary[:count] == 0
+
+      # Only include it if the user can do it or it has a count
+      if summary[:can_act] || summary[:count]
+        result << summary
+      end
     end
 
     result
@@ -181,7 +321,7 @@ class PostSerializer < BasicPostSerializer
   end
 
   def include_raw?
-    @add_raw.present? && (!object.hidden || scope.user.try(:staff?) || yours)
+    @add_raw.present? && (!object.hidden || scope.user&.staff? || yours)
   end
 
   def include_link_counts?
@@ -195,11 +335,60 @@ class PostSerializer < BasicPostSerializer
   end
 
   def include_reply_to_user?
-    object.quoteless? && object.reply_to_user
+    !(SiteSetting.suppress_reply_when_quoting && object.reply_quoted?) && object.reply_to_user
   end
 
-  def include_bookmarked?
-    post_actions.present? && post_actions.keys.include?(PostActionType.types[:bookmark])
+  def bookmarked
+    @bookmarked ||= post_bookmark.present?
+  end
+
+  def include_bookmark_reminder_at?
+    bookmarked
+  end
+
+  def include_bookmark_reminder_type?
+    bookmarked
+  end
+
+  def include_bookmark_name?
+    bookmarked
+  end
+
+  def include_bookmark_auto_delete_preference?
+    bookmarked
+  end
+
+  def include_bookmark_id?
+    bookmarked
+  end
+
+  def post_bookmark
+    if @topic_view.present?
+      @post_bookmark ||= @topic_view.user_post_bookmarks.find { |bookmark| bookmark.post_id == object.id }
+    else
+      @post_bookmark ||= object.bookmarks.find_by(user: scope.user)
+    end
+  end
+
+  def bookmark_reminder_at
+    post_bookmark&.reminder_at
+  end
+
+  def bookmark_reminder_type
+    return if post_bookmark.blank?
+    Bookmark.reminder_types[post_bookmark.reminder_type].to_s
+  end
+
+  def bookmark_name
+    post_bookmark&.name
+  end
+
+  def bookmark_auto_delete_preference
+    post_bookmark&.auto_delete_preference
+  end
+
+  def bookmark_id
+    post_bookmark&.id
   end
 
   def include_display_username?
@@ -207,12 +396,168 @@ class PostSerializer < BasicPostSerializer
   end
 
   def can_view_edit_history
-    scope.can_view_post_revisions?(object)
+    scope.can_view_edit_history?(object)
   end
 
-  private
+  def user_custom_fields
+    user_custom_fields_object[object.user_id]
+  end
+
+  def include_user_custom_fields?
+    user_custom_fields_object[object.user_id]
+  end
+
+  def static_doc
+    true
+  end
+
+  def include_static_doc?
+    object.is_first_post? && Discourse.static_doc_topic_ids.include?(object.topic_id)
+  end
+
+  def include_via_email?
+    object.via_email?
+  end
+
+  def is_auto_generated
+    object.incoming_email&.is_auto_generated
+  end
+
+  def include_is_auto_generated?
+    object.via_email? && is_auto_generated
+  end
+
+  def version
+    return 1 if object.hidden && !scope.can_view_hidden_post_revisions?
+
+    scope.is_staff? ? object.version : object.public_version
+  end
+
+  def include_action_code?
+    object.action_code.present?
+  end
+
+  def action_code_who
+    post_custom_fields["action_code_who"]
+  end
+
+  def include_action_code_who?
+    include_action_code? && action_code_who.present?
+  end
+
+  def notice
+    post_custom_fields[Post::NOTICE]
+  end
+
+  def include_notice?
+    return false if notice.blank?
+
+    case notice["type"]
+    when Post.notices[:custom]
+      return true
+    when Post.notices[:new_user]
+      min_trust_level = SiteSetting.new_user_notice_tl
+    when Post.notices[:returning_user]
+      min_trust_level = SiteSetting.returning_user_notice_tl
+    else
+      return false
+    end
+
+    scope.user && scope.user.id != object.user_id && scope.user.has_trust_level?(min_trust_level)
+  end
+
+  def locked
+    true
+  end
+
+  # Only show locked posts to the users who made the post and staff
+  def include_locked?
+    object.locked? && (yours || scope.is_staff?)
+  end
+
+  def last_wiki_edit
+    object.revisions.last.updated_at
+  end
+
+  def include_last_wiki_edit?
+    object.wiki &&
+    object.post_number == 1 &&
+    object.revisions.size > 0
+  end
+
+  def include_hidden_reason_id?
+    object.hidden
+  end
+
+  # If we have a topic view, it has bulk values for the reviewable content we can use
+  def reviewable_id
+    if @topic_view.present?
+      for_post = @topic_view.reviewable_counts[object.id]
+      return for_post ? for_post[:reviewable_id] : 0
+    end
+
+    reviewable&.id
+  end
+
+  def include_reviewable_id?
+    can_review_topic?
+  end
+
+  def reviewable_score_count
+    if @topic_view.present?
+      for_post = @topic_view.reviewable_counts[object.id]
+      return for_post ? for_post[:total] : 0
+    end
+
+    reviewable_scores.size
+  end
+
+  def include_reviewable_score_count?
+    can_review_topic?
+  end
+
+  def reviewable_score_pending_count
+    if @topic_view.present?
+      for_post = @topic_view.reviewable_counts[object.id]
+      return for_post ? for_post[:pending] : 0
+    end
+
+    reviewable_scores.count { |rs| rs.pending? }
+  end
+
+  def include_reviewable_score_pending_count?
+    can_review_topic?
+  end
+
+private
+
+  def can_review_topic?
+    return @can_review_topic unless @can_review_topic.nil?
+    @can_review_topic = @topic_view&.can_review_topic
+    @can_review_topic ||= scope.can_review_topic?(object.topic)
+    @can_review_topic
+  end
+
+  def reviewable
+    @reviewable ||= Reviewable.where(target: object).includes(:reviewable_scores).first
+  end
+
+  def reviewable_scores
+    reviewable&.reviewable_scores&.to_a || []
+  end
+
+  def user_custom_fields_object
+    (@topic_view&.user_custom_fields || @options[:user_custom_fields] || {})
+  end
+
+  def topic
+    @topic = object.topic
+    @topic ||= Topic.with_deleted.find_by(id: object.topic_id) if scope.is_staff?
+    @topic
+  end
 
   def post_actions
-    @post_actions ||= (@topic_view.present? && @topic_view.all_post_actions.present?) ? @topic_view.all_post_actions[object.id] : nil
+    @post_actions ||= (@topic_view&.all_post_actions || {})[object.id]
   end
+
 end

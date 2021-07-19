@@ -1,4 +1,6 @@
-class RenameSeenNotificaitonId < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class RenameSeenNotificaitonId < ActiveRecord::Migration[4.2]
   def up
     rename_column :users, :seen_notificaiton_id, :seen_notification_id
   end

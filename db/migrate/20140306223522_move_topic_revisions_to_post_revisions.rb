@@ -1,4 +1,6 @@
-class MoveTopicRevisionsToPostRevisions < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class MoveTopicRevisionsToPostRevisions < ActiveRecord::Migration[4.2]
   def up
     execute <<SQL
 

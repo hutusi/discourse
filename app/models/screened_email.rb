@@ -1,4 +1,4 @@
-require_dependency 'screening_model'
+# frozen_string_literal: true
 
 # A ScreenedEmail record represents an email address that is being watched,
 # typically when creating a new User account. If the email of the signup form
@@ -12,14 +12,65 @@ class ScreenedEmail < ActiveRecord::Base
 
   validates :email, presence: true, uniqueness: true
 
-  def self.block(email, opts={})
-    find_by_email(email) || create(opts.slice(:action_type, :ip_address).merge({email: email}))
+  before_save :downcase_email
+
+  def downcase_email
+    self.email = email.downcase
+  end
+
+  def self.canonical(email)
+    name, domain = email.split('@', 2)
+    name = name.gsub(/\+.*/, '')
+    if ['gmail.com', 'googlemail.com'].include?(domain.downcase)
+      name = name.gsub('.', '')
+    end
+    "#{name}@#{domain}".downcase
+  end
+
+  def self.block(email, opts = {})
+    email = canonical(email)
+    find_by_email(email) || create!(opts.slice(:action_type, :ip_address).merge(email: email))
   end
 
   def self.should_block?(email)
-    screened_email = ScreenedEmail.find_by(email: email)
+
+    email = canonical(email)
+
+    screened_emails = ScreenedEmail.order(created_at: :desc).limit(100)
+
+    distances = {}
+    screened_emails.each { |se| distances[se.email] = levenshtein(se.email.downcase, email.downcase) }
+
+    max_distance = SiteSetting.levenshtein_distance_spammer_emails
+    screened_email = screened_emails.select { |se| distances[se.email] <= max_distance }
+      .sort   { |se| distances[se.email] }
+      .first
+
     screened_email.record_match! if screened_email
-    screened_email && screened_email.action_type == actions[:block]
+
+    screened_email.try(:action_type) == actions[:block]
+  end
+
+  def self.levenshtein(first, second)
+    matrix = [(0..first.length).to_a]
+    (1..second.length).each do |j|
+      matrix << [j] + [0] * (first.length)
+    end
+
+    (1..second.length).each do |i|
+      (1..first.length).each do |j|
+        if first[j - 1] == second[i - 1]
+          matrix[i][j] = matrix[i - 1][j - 1]
+        else
+          matrix[i][j] = [
+            matrix[i - 1][j],
+            matrix[i][j - 1],
+            matrix[i - 1][j - 1],
+          ].min + 1
+        end
+      end
+    end
+    matrix.last.last
   end
 
 end
@@ -29,7 +80,7 @@ end
 # Table name: screened_emails
 #
 #  id            :integer          not null, primary key
-#  email         :string(255)      not null
+#  email         :string           not null
 #  action_type   :integer          not null
 #  match_count   :integer          default(0), not null
 #  last_match_at :datetime
@@ -39,6 +90,6 @@ end
 #
 # Indexes
 #
-#  index_blocked_emails_on_email          (email) UNIQUE
-#  index_blocked_emails_on_last_match_at  (last_match_at)
+#  index_screened_emails_on_email          (email) UNIQUE
+#  index_screened_emails_on_last_match_at  (last_match_at)
 #

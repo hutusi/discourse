@@ -1,162 +1,49 @@
-> # Warning: This Guide is Deprecated
-> We only support Docker based installs now. Please see [our **official install guide**](https://github.com/discourse/discourse/blob/master/docs/INSTALL.md) for supported install instructions.
+### Recommended Email Providers for Discourse
 
-# Discourse Mail Setup Guide
+We strongly recommend using a dedicated email service. Email server setup and maintenance is _very_ difficult even for experienced system administrators, and getting any part of the complex required email setup wrong means your email won't be delivered, or worse, delivered erratically.
 
-After following INSTALL-ubuntu.md your mailer settings should still be set.
+The following are template configurations for email service providers known to work with Discourse.
 
-Out-of-the-box Discourse is configured to deliver mail locally via sendmail.
-That's great. Leave that there as we're going to try to get the mail to postfix
-ASAP so postfix do it's job and process the mail for delivery.
+_The pricing information is included as a courtesy, and may be out of date. Discourse does not control the pricing for external services, be sure to check with the email provider for up to date pricing information._
 
-## Email is IMPORTANT
+**Please note that in any email provider, you _must_ verify and use the subdomain, e.g. `discourse.example.com`. If you verify the domain only, e.g. `example.com`, mail will not be configured correctly.**
 
-Email notifications are core to the Discourse experience. We want your users to receive notifications as soon as possible so they can contribute to the conversation.
+Enter these values when prompted by `./discourse-setup` per the [install guide](https://github.com/discourse/discourse/blob/master/docs/INSTALL-cloud.md#edit-discourse-configuration). To change the current email service, run `./discourse-setup` as well (this will bring the forum offline for a few minutes while it gets rebuilt).
 
-If sending email isn't something to which you want to devote your time, don't
-worry about it. There are [companies](http://mandrill.com/) that dedicate
-theirs to doing one thing very well - ensuring that mail to your users gets
-delivered.
+#### [Mailgun][gun] &mdash; 5k emails/month on a 3 month trial
 
-## Sending Email Through GMail
+    SMTP server address? smtp.mailgun.org
+    SMTP user name?      [SMTP credentials for your domain under domains tab]
+    SMTP password?       [SMTP credentials for your domain under domains tab]
 
-Don't do it! GMail is not intended for sending out bulk notifications. Your email setup [will break](http://webapps.stackexchange.com/q/44768/12456).
+#### [SendGrid][sg] &mdash; 40k emails on a 30 day trial
 
-## Sending Email Through Mandrill
+    SMTP server address? smtp.sendgrid.net
+    SMTP user name?      apikey
+    SMTP password?       [SendGrid API Key]
 
-### Create an account
-We're going to use [Mandrill](http://mandrill.com/) as our email delivery
-provider.
+We recommend creating an [API Key][sg2] instead of using your SendGrid username and password.
 
-![mandrill email signup](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20signup.png)
+#### [Mailjet][jet] &mdash; 6k emails/month (200 max/day)
 
-1. Create an account at http://mandrill.com/ (click on 'SIGN UP')
+Go to [My Account page](https://app.mailjet.com/account) and click on the ["SMTP and SEND API Settings"](https://app.mailjet.com/account/setup) link.
 
-1. I filled out the 'Tell Us A Little About Yourself' survey. They are
-providing us a free service, after all!
+#### [Elastic Email][ee]
 
-### Create an API key
-I'm pleased with Mandrill's setup - this is the Right Way to do things.
+    SMTP server address? smtp.elasticemail.com
+    SMTP user name?      [Your registered email address]
+    SMTP password?       [Elastic Email API Key]
+    SMTP port?           2525
+    
+NOTE: By default, Elastic Email will add an additional UNSUBSCRIBE link at the bottom of each sent email. You need to work with them to [disable that link](https://meta.discourse.org/t/remove-or-merge-elastic-email-unsubscribe/70236/39), so that Discourse users can manage their subscription through Discourse.
 
-![mandrill email signup](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20getsmtpcreds.png)
+   [ee]: https://elasticemail.com
+  [jet]: https://www.mailjet.com/pricing
+  [gun]: https://www.mailgun.com/
+   [sg]: https://sendgrid.com/
+  [sg2]: https://sendgrid.com/docs/Classroom/Send/How_Emails_Are_Sent/api_keys.html
+  
 
-1. Click 'Get SMTP Credentials'
+### Bounce Handling
 
-![mandrill email signup](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20addapikey.png)
-
-1. Note that you can use 'any valid API key' as your password. Click '+ Add API Key' to create one.
-
-![mandrill email signup](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20editapikey1.png)
-
-1. Click 'Edit' to document for what we'll be using this key.
-
-![mandrill email signup](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20editapikey2.png)
-
-1. Since we'll only be using this key for sending email and *nothing else*, check 'Only Allow This Key To Use Certain API Calls' and select only Messages / Send and Messages/ Send-Raw. Send-Raw must be selected or Discourse won't be able to send email.
- 
-
-![mandrill email signup](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20editapikey3.png)
-
-1. Optionally, restrict this key to the public static IP address of your server.
-
-1. Click 'Save'
-
-### Configure Postfix for Mandrill
-
-Thank you Mandrill for providing an excellent [guide on configuring Postfix to use Mandrill](http://help.mandrill.com/entries/23060367-Can-I-configure-Postfix-to-send-through-Mandrill-).
-
-Additional notes on this document:
-
-* Ubuntu has an `/etc/postfix/sasl` directory. Create a password file in there.
-
-* Make sure you put your **API KEY** into this password file, not your **ACCOUNT PASSWORD**
-
-* You may already have configured a `relayhost` earlier in the installation. If this machine is sending out ANY emails other than Discourse-generated notifications, follow the instructions in 'Relay only certain emails through Mandrill'.
-
-After configuring postfix as per Mandrill's instructions, reload postfix with `sudo postfix reload`.
-
-### Send test email
-
-![discourse admin setting](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20discourse%20admin.png)
-
-Now we send a test email. Login to your Discourse installation and click on the ≡ (aka congruence/hamburger/etc), then 'Admin'.
-
-![discourse admin setting](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20discourse%20emailtest.png)
-
-Click on `Email`, `Settings`, then type your email address into the test box and click `send test email`.
-
-Within moments, you should have email in your Inbox.
-
-### OH NOES I DIDN'T GET MY EMAIL TEST!
-
-Follow the trail. First of all, did the email get to Postfix? Check `/var/log/mail.log`:
-
-    Jun 24 01:24:59 discoursetest postfix/pickup[25387]: 7CBF280294C: uid=1001 from=<info@discourse.org>
-    Jun 24 01:24:59 discoursetest postfix/cleanup[25829]: 7CBF280294C: message-id=<51c7d82b6f878_8ef3d7802c10139@discoursetest.mail>
-    Jun 24 01:24:59 discoursetest postfix/qmgr[25386]: 7CBF280294C: from=<info@discourse.org>, size=5884, nrcpt=1 (queue active)
-
-Looks good! Wait, why is the email coming *from* `info@discourse.org`? That's a
-problem we'll fix below.
-
-    Jun 24 01:25:04 discoursetest postfix/smtp[25831]: 7CBF280294C: SASL authentication failed; server smtp.mandrillapp.com[54.235.146.179] said: 435 4.7.8 Error: authentication failed: 
-    Jun 24 01:25:10 discoursetest postfix/smtp[25831]: 7CBF280294C: SASL authentication failed; server smtp.mandrillapp.com[54.234.14.176] said: 435 4.7.8 Error: authentication failed: 
-    Jun 24 01:25:13 discoursetest postfix/smtp[25831]: 7CBF280294C: SASL authentication failed; server smtp.mandrillapp.com[50.16.10.62] said: 435 4.7.8 Error: authentication failed: 
-    Jun 24 01:25:20 discoursetest postfix/smtp[25831]: 7CBF280294C: to=<spoonman@discourse.org>, relay=smtp.mandrillapp.com[54.235.146.152]:25, delay=21, delays=0.07/0.01/21/0, dsn=4.7.8, status=deferred (SASL authentication failed; server smtp.mandrillapp.com[54.235.146.152] said: 435 4.7.8 Error: authentication failed: )
-
-The above errors are caused by using an incorrect API key in your sasl passwords file. Fix that (edit `/etc/postfix/sasl/passwd`, run `sudo postmap` on it, then `postqueue -f` to restart the queue).
-
-    Jun 24 01:30:30 discoursetest postfix/smtp[25861]: table hash:/etc/postfix/sasl/passwd(0,lock|fold_fix) has changed -- restarting
-    Jun 24 01:30:31 discoursetest postfix/smtp[25872]: 7CBF280294C: to=<spoonman@discourse.org>, relay=smtp.mandrillapp.com[54.234.14.176]:25, delay=332, delays=331/0.01/1.2/0.17, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as C515B6380D3)
-
-That's better! Our test message made it to Mandrill. Let's check Outbound Activity in Mandrill:
-
-
-![mandrill email confirmation](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20emailconfirm.png)
-
-If you see this, the email was accepted by Mandrill and delivered to the
-destination. You need to check your spam filter now.
-
-If you don't see anything in Mandrill, ensure that the API key is enabled for
-'Send-Raw' permission. Mandrill appears to silently drop the email if that's
-not set.
-
-### Configure notification email addresses
-
-Login to Discourse, go to the Admin page and select 'Settings'.
-
-Filter with the string 'system'.
-
-* Ensure that `site_contact_username` is set to an email address for an appropriate "owner" of the forum
-* Set `notification_email` to 'noreply@', 'nobody@' as appropriate.
-
-Filter with the string 'contact_email'
-
-* Ensure `contact_email` is set appropriately.
-
-### SPF and DKIM records
-
-Login to Mandrill and click on ⚙ (Settings)-> Sending Domains
-
-If your domain isn't listed, add it. It'll probably show this:
-
-![mandrill missing dkim settings](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20missingdkim.png)
-
-Click 'View DKIM/SPF setup instructions'.
-
-Follow the instructions there.
-
-When DNS is properly configured, you should be able to click on 'Test DNS Settings' and Mandrill will confirm they are setup properly:
-
-![mandrill good dkim settings](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20gooddkim.png)
-
-### Mandrill Options
-
-Login to Mandrill and click on ⚙ (Settings)-> Sending Options
-
-* 'Track Clicks' is enabled by default. This rewrites links in email messages to bounce off the mandrillapp.com domain for click tracking. Disable it here if you don't want that:
-
-![mandrill rewriting emails](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20rewriting.png)
-
-* If you do use it, setting up a 'Tracking Domain' is a very good idea to avoid erroneous scam warnings:
-
-![mandrill tbird warning](https://raw.github.com/discourse/discourse-docimages/master/email/email%20-%20mandrill%20tbirdwarning.png)
+When using a third party email service, you will need to enable VERP, or activate their **webhooks** in order to handle bouncing emails. [Full details here.](https://meta.discourse.org/t/handling-bouncing-e-mails/45343)

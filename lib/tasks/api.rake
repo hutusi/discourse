@@ -1,6 +1,9 @@
-desc "generate api key if missing, return existing if already there"
-task "api_key:get" => :environment do
-    api_key = ApiKey.create_master_key
+# frozen_string_literal: true
 
-    puts api_key.key
+desc "generate a master api key with given description"
+task "api_key:create_master", [:description] => :environment do |task, args|
+  raise "Supply a description for the key" if !args[:description]
+  api_key = ApiKey.create!(description: args[:description])
+
+  puts api_key.key
 end

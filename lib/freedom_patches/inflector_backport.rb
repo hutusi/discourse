@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # review per rails release, this speeds up the inflector, we are not inflecting too much at the moment, except in dev
 #
 # note: I am working with the rails team on including this in official rails
@@ -20,15 +22,20 @@ module ActiveSupport
         uncached = "#{method_name}_without_cache"
         alias_method uncached, method_name
 
-        define_method(method_name) do |*args|
+        m = define_method(method_name) do |*arguments|
           # this avoids recursive locks
           found = true
-          data = cache.fetch(args){found = false}
+          data = cache.fetch(arguments) { found = false }
           unless found
-            cache[args] = data = send(uncached, *args)
+            cache[arguments] = data = public_send(uncached, *arguments)
           end
           # so cache is never corrupted
           data.dup
+        end
+
+        # https://bugs.ruby-lang.org/issues/16897
+        if Module.respond_to?(:ruby2_keywords, true)
+          ruby2_keywords(m)
         end
       end
     end
@@ -45,9 +52,10 @@ module ActiveSupport
         args.each do |method_name|
           orig = "#{method_name}_without_clear_memoize"
           alias_method orig, method_name
-          define_method(method_name) do |*args|
+
+          define_method(method_name) do |*arguments|
             ActiveSupport::Inflector.clear_memoize!
-            send(orig, *args)
+            public_send(orig, *arguments)
           end
         end
       end
@@ -56,8 +64,3 @@ module ActiveSupport
     end
   end
 end
-
-
-
-
-

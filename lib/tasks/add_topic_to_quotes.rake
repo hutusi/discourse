@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 desc "Add the topic to quotes"
 task "add_topic_to_quotes" => :environment do
   Post.where("raw like '%topic:%'").each do |p|
@@ -6,4 +8,3 @@ task "add_topic_to_quotes" => :environment do
     Post.update_all ["raw = ?, cooked = ?", new_raw, new_cooked], ["id = ?", p.id]
   end
 end
-

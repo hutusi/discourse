@@ -1,6 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe TopicAllowedUser do
-  it { should belong_to :user }
-  it { should belong_to :topic }
+  it { is_expected.to belong_to :user }
+  it { is_expected.to belong_to :topic }
 end

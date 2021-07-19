@@ -1,4 +1,6 @@
-class FixSearch < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class FixSearch < ActiveRecord::Migration[4.2]
   def up
     execute 'drop index idx_search_thread'
     execute 'drop index idx_search_user'
@@ -13,6 +15,6 @@ class FixSearch < ActiveRecord::Migration
   end
 
   def down
-    raise ActiveRecord::IrriversableMigration
+    raise ActiveRecord::IrreversibleMigration
   end
 end

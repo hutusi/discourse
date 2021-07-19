@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # this class is used to track changes to an arbitrary buffer
 
 class ContentBuffer
@@ -35,7 +37,7 @@ class ContentBuffer
       end
 
       # fix last line
-      @lines[start_row] << @lines[finish_row][finish_col-1..-1]
+      @lines[start_row] << @lines[finish_row][finish_col - 1..-1]
     end
 
     if transform[:operation] == :insert

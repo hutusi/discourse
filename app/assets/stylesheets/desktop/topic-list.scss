@@ -2,96 +2,31 @@
 // Topic lists
 // --------------------------------------------------
 
-// List controls
-// --------------------------------------------------
-
-.list-controls {
-  .nav {
-    float: left;
-    margin-bottom: 18px;
-  }
-
-  .btn {
-    float: right;
-    margin-left: 8px;
-    margin-bottom: 10px;
-    font-size: 16px;
-    font-weight: normal;
-  }
-
-  a.badge-category {
-    padding: 3px 12px;
-    font-size: 16px;
-
-    &.category-dropdown-button {
-      height: 24px;
-      padding: 3px 9px;
-      i { height: 20px; }
-    }
-
-  }
-
-  .badge-category {
-    font-weight: normal;
-    text-transform: capitalize;
-  }
-
-}
-
-#navigation-bar {
-  .has-icon span:before {
-    margin-right: 4px;
-    font: 15px/0.9 "FontAwesome";
-  }
-  .has-icon .starred:before {
-    content: "\f005";
-  }
-  .has-icon .unread:before {
-    content: "\f02e";
-  }
-}
-
 // Base list
 // --------------------------------------------------
 
-#topic-list {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin: 0 0 10px;
-  border-top: 1px solid scale-color($primary, $lightness: 90%);
-  .fa-thumb-tack {color: $primary;}
-  .fa-thumb-tack.unpinned {color: $primary;}
-
-  a.title {color: $primary;}
-  a.title:visited:not(.badge-notification) {color: scale-color($primary, $lightness: 35%);}
-
-  > tbody > tr {
-    &:nth-child(even) {
-      background-color: scale-color($primary, $lightness: 96%);
-    }
-    &.archived a {
-      opacity: 0.6;
-    }
-    &.has-excerpt .star {
-      vertical-align: top;
-      margin-top: 2px;
-    }
-    &.category-description {
-      td {
-        color: $danger;
-      }
-    }
-    &.highlighted {
-      background-color: scale-color($tertiary, $lightness: 85%);
-    }
+.topic-list-icons {
+  .d-icon-thumbtack {
+    color: var(--primary-med-or-secondary-med);
   }
+  .d-icon-thumbtack.unpinned {
+    color: var(--primary-med-or-secondary-med);
+  }
+  a.title {
+    color: var(--primary);
+  }
+  .d-icon-bookmark {
+    color: var(--primary-med-or-secondary-med);
+  }
+}
+
+.topic-list {
+  @extend .topic-list-icons;
+
+  margin: 0 0 10px;
   th,
   td {
     padding: 12px 5px;
-    line-height: 1.25;
-    text-align: left;
-    vertical-align: middle;
     &:first-of-type {
       padding-left: 10px;
     }
@@ -100,118 +35,71 @@
     }
   }
   th {
-    color: $primary;
-    font-weight: normal;
-    font-size: 14px;
-    button i.fa {color: $primary;}
-
-  }
-  td {
-    color: scale-color($primary, $lightness: 50%);
-    font-size: 14px;
+    button .d-icon {
+      color: var(--primary-med-or-secondary-med);
+    }
   }
 
   button.bulk-select {
     padding: 0;
-    background: transparent;
-    &:hover {
-      color: scale-color($primary, $lightness: 90%);
-    }
+    line-height: $line-height-large;
   }
 
-  .star {
-    width: 20px;
-    padding-right: 0;
-    .fa-star {
-      position: relative;
-    }
-    + .main-link {
-      padding-left: 5px;
-    }
-  }
-  .main-link {
-    width: 495px;
-    font-size: 16px;
-
-    i.score {
-      color: $success;
+  td.bulk-select {
+    padding: 0;
+    width: 30px;
+    label {
+      margin: 0px;
+      padding: 12px 10px 16px 10px;
       cursor: pointer;
     }
-  }
-
-  .topic-excerpt {
-    font-size: 13px;
-    margin-top: 8px;
-    color: scale-color($primary, $lightness: 50%);
-    word-break: break-word;
-    padding-right: 50px;
-    line-height: 1.4;
-  }
-
-  @include medium-width {
-    .main-link {
-      max-width: 300px;
+    + .main-link {
+      padding-left: 0;
     }
   }
 
-   @include small-width {
-    .main-link {
-     max-width: 300px;
-
-    }
-
-  }
-
-  .topic-statuses:empty {
-    display: none;
-  }
-  .topic-status {
-    margin-right: 4px;
-    padding: 0;
-    font-size: 15px;
-    &:last-of-type {
-      margin-right: 0;
-    }
-  }
   .badge-notification {
     position: relative;
     top: -2px;
+    &.new-topic {
+      top: -1px;
+      padding-left: 5px;
+    }
   }
-  .category {
-    padding: 0 20px 0 20px;
-    min-width: 80px;
-  }
+
+  $td-posters-height: 29px; // min-height of td with avatar glow
+  $td-posters-more-lh: $td-posters-height - 4;
+
   .posters {
-    min-width: 150px;
+    // we know there are up to 5 avatars of fixed size
+    // will be overridden by media width queries on narrow displays to 1 avatar's width
+    width: 146px;
     > a {
       float: left;
       margin-right: 4px;
       &:last-of-type {
         margin-right: 0;
       }
+
+      &.posters-more-count {
+        cursor: default;
+        color: var(--primary-med-or-secondary-med);
+        line-height: $td-posters-more-lh;
+        font-size: $font-down-1;
+      }
     }
   }
-  .avatar {
-    &.latest {
-      @include box-shadow(0 0 6px 1px desaturate(scale-color($tertiary, $lightness: 30%), 35%));
-    }
+  td.posters {
+    height: $td-posters-height;
   }
-  .num {
-    text-align: center;
-    a:not(.badge-posts) {
-      color: inherit;
-    }
-    a.badge-posts {
-      font-weight: bold;
-    }
+  .posters a:first-child .avatar.latest:not(.single) {
+    box-shadow: 0 0 3px 1px rgba(var(--tertiary-rgb), 0.35);
+    border: 2px solid rgba(var(--tertiary-rgb), 0.5);
+    position: relative;
+    top: -2px;
+    left: -2px;
   }
-  .sortable {
-    cursor: pointer;
-    &:hover {
-      background-color: scale-color($primary, $lightness: 90%);
-    }
-    @include unselectable;
-  }
+
   .likes {
     width: 65px;
   }
@@ -221,8 +109,31 @@
   .posts {
     width: 65px;
   }
+
+  .post-actions {
+    clear: both;
+    width: auto;
+    color: var(--primary-med-or-secondary-med);
+    text-align: left;
+    font-size: $font-down-1;
+    margin-top: 5px;
+    .fa {
+      margin-right: 2px;
+    }
+    a {
+      color: var(--primary-med-or-secondary-med);
+      margin-right: 3px;
+      line-height: $line-height-large;
+    }
+  }
   .activity {
     width: 60px;
+    &:lang(zh_CN) {
+      width: 80px;
+    }
+    span {
+      cursor: pointer;
+    }
   }
   .age {
     width: 60px;
@@ -232,318 +143,133 @@
   }
 }
 
-#list-area .top-lists h2 { margin: 5px 0 10px; }
-
-#topic-list tbody tr.has-excerpt .star {
-  vertical-align: top;
-  margin-top: 3px;
-}
-
-#topic-list.categories {
-  th.posts {
-    position: relative;
-  }
-  th .toggle-admin {
-    position: absolute;
-    padding: 3px 8px;
-    font-size: 12px;
-    right: -35px;
-    top: 4px;
-  }
-  th.latest, td.latest {
-    padding-left: 12px;
-  }
-  th.num {
-    width: 45px;
-  }
-  th.stats {
-    width: 90px;
-  }
-  td.latest {
-    vertical-align: top;
-    padding: 8px;
-  }
-  td.category {
-    vertical-align: top;
-    padding-top: 15px;
-    padding-bottom: 15px;
-  }
-  td.stats {
-    .unit {
-      font-size: 11px;
-    }
-  }
-  table.categoryStats {
-    td {
-      padding: 2px;
-      vertical-align: bottom;
-      line-height: 17px;
-      &.value { text-align: right; }
-      &.unit  { text-align: left; }
-    }
-  }
-  .last-user-info {
-    font-size: 12px;
-  }
-
-  .has-description {
-    td.category {
-      padding-top: 15px;
-    }
-  }
-
-  .category{
-    position: relative;
-    width: 45%;
-
-    .subcategories {
-      margin-top: 10px;
-    }
-    .featured-users {
-      float: right;
-      margin-right: 13px;
-    }
-    .category-description {
-      margin-top: 10px;
-    }
-    .badge-category.bigger {
-      padding: 6px 10px;
-      font-size: 14px;
-    }
-  }
-
-  .featured-topic {
-    margin: 6px 0;
-    a.last-posted-at, a.last-posted-at:visited {
-      color: scale-color($primary, $lightness: 50%);
-    }
-  }
-
-  .badge-category {
-    display: inline-block;
-    margin-top: 1px;
-  }
-}
-
-
-
-
-// Category list
-// --------------------------------------------------
-
-.category-column {
-  float: left;
-  width: 550px;
-  &.first {
-    margin-right: 10px;
-  }
-}
-
-@include medium-width {
-  .category-column {
-    width: 493px;
-    &.first {
-      margin-right: 9px;
-    }
-  }
-}
-
-@include small-width {
-  .category-column {
-    width: 470px;
-  }
-}
-
-.category-list-item {
-  margin-bottom: 10px;
-  #topic-list tbody tr:nth-child(even) {
-    background-color: $secondary;
-  }
-  th .badge-category {
-    float: left;
-    margin: 1px 4px 0 0;
-  }
-  .posters {
-    float: left;
-    display: block;
-    width: 165px;
-  }
-  > footer {
-    border: 1px solid scale-color($primary, $lightness: 90%);
-    border-top: 0;
-    padding: 7px 10px;
-    background-color: scale-color($primary, $lightness: 90%);
-    figure {
-      float: left;
-      margin: 3px 7px 0 0;
-      color: scale-color($primary, $lightness: 10%);
-      font-weight: bold;
-      font-size: 12px;
-    }
-    figcaption {
-      display: inline;
-      font-weight: normal;
-    }
-    .btn {
-      float: right;
-      margin-left: 7px;
-    }
-  }
-}
-
-// Loading
-// --------------------------------------------------
-
-// List
-
-.loading #topic-list {
-  border: 0;
-  @include box-shadow(none);
-  tr {
-    background-color: transparent;
-  }
-}
-
-// Topics
-
-#topic-list-bottom {
+.topic-list-bottom {
   margin: 20px 0;
-}
-
-.topics-loading {
-  width: 200px;
-  margin: 0 auto;
-  padding: 10px 0 10px 43px;
-  color: $secondary;
-  font-size: 18px;
-  line-height: 25px;
-  background: {
-    color: #000;
-    image: image-url("spinner_96_w.gif");
-    repeat: no-repeat;
-    position: 10px 50%;
-    size: 25px;
-  };
-  @include border-radius-all(12px);
 }
 
 // Misc. stuff
 // --------------------------------------------------
 
-.list-controls {
-
-  .home {
-    background-color: scale-color($primary, $lightness: 90%);
-    color: $primary;
+#list-area .top-lists {
+  h2 {
+    cursor: pointer;
+    margin: 5px 0 10px;
   }
 
-  .badge-category {
-    padding: 4px 10px;
-    display: inline-block;
-    line-height: 24px;
-    float: left;
+  .period-chooser .select-kit-body {
+    width: 275px;
   }
-  .category-dropdown-button {
-    border-left: 1px solid rgba(0,0,0,0.15);
-    font-size: 16px;
-    width: 10px;
-    text-align: center;
-
-    &:hover {
-      opacity: 0.8;
-    }
-  }
-  clear: both;
 }
-#list-area {
-  margin-bottom: 300px;
 
+#list-area {
   h2 {
     margin: 20px 0 10px;
   }
-
-
-  .empty-topic-list {
-    padding: 10px;
-  }
-  .unseen {
-    background-color: transparent;
-    padding: 0;
-    border: 0;
-    color: scale-color($danger, $lightness: 20%);
-    font-size: 13px;
-    cursor: default;
-  }
-}
-#topic-list {
-  .alert {
-    margin-bottom: 0;
-    font-size: 14px;
-  }
-  .spinner {
-    margin-top: 40px;
-  }
-}
-span.posted {
-  display: inline-block;
-  text-indent: -9999em;
-  width: 15px;
-  height: 15px;
-  background: {
-    image: image-url("posted.png");
-  };
-}
-
-ol.category-breadcrumb {
-  display: block;
-  float: left;
-  list-style: none;
-  margin: 0 10px 0 0;
-  padding: 0;
-
-  li {
-    float: left;
-    margin-right: 5px;
+  .show-more.has-topics {
+    top: 0;
+    .alert {
+      padding: 12px 35px 12px 14px;
+    }
   }
 }
 
-.category-dropdown-menu {
-  overflow-x: hidden;
-  overflow-y: scroll;
-  position: absolute;
-  border: 1px solid scale-color($primary, $lightness: 90%);
-  background-color: $secondary;
-  max-height: 350px;
-  padding: 8px 7px 0 7px;
-  z-index: 100;
-  margin-top: 30px;
-  min-width: 138px;
-
-
-  a.badge-category {
-    font-size: 13px;
-    font-weight: bold;
-    padding: 4px 0;
-    float: none;
-    line-height: 19px;
-    text-transform: none;
-    width: 100%;
-    min-width: 102px;
-    text-align: center;
-    margin-right: 20px;
-    margin-bottom: 7px;
+.bulk-select-container {
+  @supports (position: sticky) {
+    @media screen and (min-width: 1250px) {
+      position: sticky;
+      position: -webkit-sticky;
+    }
   }
-
 }
 
 #bulk-select {
   position: fixed;
-  right: 20px;
-  padding: 5px;
-  background-color: $secondary;
+  right: 10px; // match horizontal padding on .wrap
+  padding-top: 12px; // match .topic-list th padding
+  background-color: var(--secondary);
+  z-index: z("dropdown");
+  @supports (position: sticky) {
+    @media screen and (min-width: 1250px) {
+      body:not(.search-page):not(.user-messages-page) & {
+        position: absolute;
+        right: -60px;
+        top: 0;
+      }
+    }
+  }
 }
 
 button.dismiss-read {
   float: right;
   margin-bottom: 5px;
+  margin-left: 10px;
+}
+
+.category-breadcrumb {
+  // only target the top-level li, not dropdowns
+  > li {
+    height: 100%;
+  }
+  .select-kit-header {
+    align-self: stretch;
+    height: 100%;
+    margin-bottom: var(--nav-space);
+  }
+}
+
+.category-logo.aspect-image {
+  float: left;
+  margin: 0.33em 2em 2em 0;
+}
+
+/* Tablet (portrait) ----------- */
+
+@include breakpoint(medium) {
+  // slightly smaller font, tighten spacing on nav pills
+  .nav-pills {
+    > li > a {
+      font-size: $font-0;
+      padding: 7px 10px;
+    }
+  }
+
+  .topic-list {
+    // tighter table header spacing
+    th:first-of-type {
+      padding: 12px 5px;
+    }
+    // smaller table cell spacing
+    th,
+    td {
+      padding: 10px;
+      font-size: $font-0;
+    }
+    // suppress views column
+    th.views {
+      display: none;
+    }
+    td.views {
+      display: none;
+    }
+    // reduce width for more title space
+    .posts {
+      width: 50px;
+    }
+    .posters {
+      width: 30px;
+      text-align: center;
+    }
+    // show only the first poster
+    td.posters {
+      a:not(.latest) {
+        display: none;
+      }
+      a.latest {
+        width: 100%;
+        img {
+          margin: 0 auto;
+        }
+      }
+    }
+  }
 }

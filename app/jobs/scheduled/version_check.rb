@@ -1,12 +1,11 @@
-require_dependency 'discourse_hub'
-require_dependency 'discourse_updates'
+# frozen_string_literal: true
 
 module Jobs
-  class VersionCheck < Jobs::Scheduled
+  class VersionCheck < ::Jobs::Scheduled
     every 1.day
 
     def execute(args)
-      if SiteSetting.version_checks? and (DiscourseUpdates.updated_at.nil? or DiscourseUpdates.updated_at < 1.minute.ago)
+      if SiteSetting.version_checks? && (DiscourseUpdates.updated_at.nil? || DiscourseUpdates.updated_at < (1.minute.ago))
         begin
           prev_missing_versions_count = DiscourseUpdates.missing_versions_count || 0
 
@@ -18,12 +17,16 @@ module Jobs
           DiscourseUpdates.updated_at = Time.zone.now
           DiscourseUpdates.missing_versions = json['versions']
 
-          if SiteSetting.new_version_emails and json['missingVersionsCount'] > 0 and prev_missing_versions_count < json['missingVersionsCount'].to_i
+          if SiteSetting.new_version_emails &&
+              json['missingVersionsCount'] > (0) &&
+              prev_missing_versions_count < (json['missingVersionsCount'].to_i)
+
             message = VersionMailer.send_notice
             Email::Sender.new(message, :new_version).send
+
           end
         rescue => e
-          raise e unless Rails.env == 'development' # Fail version check silently in development mode
+          raise e unless Rails.env.development? # Fail version check silently in development mode
         end
       end
       true

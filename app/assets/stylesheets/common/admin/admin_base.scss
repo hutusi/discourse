@@ -1,40 +1,296 @@
-// these are the styles associated with the Discourse admin section
-@import "common/foundation/variables";
-@import "common/foundation/mixins";
+// Styles for /admin section
+
 @import "common/foundation/helpers";
 
+$mobile-breakpoint: 700px;
+
+// Common admin styles
+
+.admin-main-nav {
+  display: inline-flex;
+  position: relative;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  height: 100%;
+  @include breakpoint(tablet) {
+    width: calc(100% + 10px);
+    margin-left: -10px;
+    padding: 0 0 0 10px;
+  }
+
+  .nav-pills {
+    display: inline-flex;
+    flex-wrap: wrap;
+    width: calc(100% - 10px);
+    flex: 1 0 auto;
+    margin-top: 0;
+    @include breakpoint(tablet) {
+      white-space: nowrap;
+      flex-wrap: nowrap;
+      overflow-x: scroll;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 0 0 -10px;
+      padding: 0 10px 10px 10px;
+    }
+    &:before {
+      display: none;
+    }
+    > li {
+      margin: 0;
+      &:last-of-type {
+        > a {
+          margin-right: 25px;
+        }
+      }
+    }
+  }
+  @include breakpoint(tablet) {
+    // Fade-out for horizontal scroll nav
+    &:before {
+      content: "";
+      position: absolute;
+      width: 10px;
+      margin-left: -10px;
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(var(--secondary-rgb), 1),
+        rgba(var(--secondary-rgb), 0)
+      );
+    }
+    &:after {
+      content: "";
+      position: absolute;
+      right: 0px;
+      width: 30px;
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        rgba(var(--secondary-rgb), 0),
+        rgba(var(--secondary-rgb), 1)
+      );
+    }
+  }
+}
+
+.admin-contents {
+  position: relative;
+  .nav-stacked {
+    @media screen and (max-width: 700px) {
+      margin: 0 15px 0 -10px;
+    }
+  }
+}
 
 .admin-contents table {
   width: 100%;
-  tr {text-align: left;}
-  td, th {padding: 8px;}
-  th {border-top: 1px solid scale-color($primary, $lightness: 90%);}
-  td {border-bottom: 1px solid scale-color($primary, $lightness: 90%); border-top: 1px solid scale-color($primary, $lightness: 90%);}
-  tr:hover { background-color: darken($secondary, 2.5%); }
-  tr.selected { background-color: lighten($primary, 50%); }
-  .filters input { margin-bottom: 0; }
+  margin-top: 10px;
+
+  tr {
+    text-align: left;
+  }
+  td,
+  th {
+    padding: 8px;
+  }
+  tr:hover {
+    background-color: var(--primary-very-low);
+  }
+  tr.selected {
+    background-color: var(--primary-low);
+  }
+  .filters input {
+    margin-bottom: 0;
+  }
+  .label {
+    display: none;
+  }
+
+  @media screen and (max-width: 970px) and (min-width: 768px) {
+    td,
+    th {
+      padding: 6px 4px;
+    }
+    th {
+      vertical-align: bottom;
+    }
+    th.sortable {
+      max-width: 100px;
+    }
+  }
 }
 
-.content-list li a span.count {
-  font-size: 12px;
-  float: right;
-  margin-right: 10px;
-  background-color: scale-color($primary, $lightness: 90%);
-  padding: 2px 5px;
-  border-radius: 5px;
-  color: $primary;
+.admin-contents table.grid {
+  // Table switches to grid for narrow screens
+  @media screen and (max-width: 767px) {
+    thead {
+      display: none;
+    }
+    .label {
+      display: block;
+      color: var(--primary-medium);
+      font-size: $font-down-1;
+      margin: 0.5em 0 0.15em 0;
+    }
+    tr {
+      grid-template-columns: repeat(3, 1fr);
+      display: grid;
+      line-height: $line-height-medium;
+      padding: 8px 0;
+      min-width: 0;
+      td {
+        padding: 2px;
+        align-self: center;
+      }
+    }
+
+    tr.flagged-topic {
+      grid-template-columns: 0.25fr 1fr 1fr;
+      td.topic-title {
+        grid-column-start: 2;
+        grid-column-end: -2;
+        min-width: 0;
+        align-self: start;
+      }
+      td.last-flagged {
+        grid-row: 1;
+        grid-column-end: -1;
+        text-align: right;
+        align-self: start;
+      }
+      td.flag-details {
+        grid-row: 2;
+        grid-column-end: -1;
+        text-align: right;
+      }
+      td.flagged-topic-users {
+        grid-row: 1;
+        grid-column-start: 1;
+        max-width: 60px;
+        align-self: start;
+        a {
+          display: inline-block;
+          margin: 0 0.25em 0.25em 0;
+        }
+      }
+      td.flag-counts {
+        grid-row: 2;
+        grid-column-start: 2;
+      }
+    }
+  }
+
+  @media screen and (min-width: 550px) {
+    tr {
+      grid-template-columns: repeat(6, 1fr);
+    }
+  }
+}
+
+.site-texts {
+  .search-area {
+    margin-bottom: 2em;
+    p {
+      margin-top: 0;
+    }
+    .site-text-search {
+      padding: 0.5em;
+      font-size: $font-0;
+      width: 50%;
+    }
+    .reseed {
+      float: right;
+    }
+    .locale {
+      margin-bottom: 0.5em;
+    }
+    .locale-search {
+      width: 50%;
+    }
+  }
+  .text-highlight {
+    font-weight: bold;
+  }
+  .site-text {
+    cursor: pointer;
+    border-bottom: 1px solid var(--primary-low);
+    margin-bottom: 0.5em;
+    &.overridden {
+      background-color: var(--highlight-medium);
+    }
+    h3 {
+      font-weight: normal;
+      font-size: $font-0;
+      @include breakpoint(mobile-extra-large) {
+        word-wrap: break-word;
+      }
+    }
+    button.edit {
+      float: right;
+    }
+    .site-text-value {
+      margin: 0.5em 5em 0.5em 0;
+      @include breakpoint(medium, min-width) {
+        max-height: 100px;
+      }
+      @include breakpoint(mobile-extra-large) {
+        word-wrap: break-word;
+      }
+      color: var(--primary-medium);
+    }
+  }
+  .edit-site-text {
+    textarea {
+      width: 100%;
+      max-width: 800px;
+    }
+    .save-button,
+    .title {
+      margin-bottom: 1em;
+    }
+    @include breakpoint(mobile-extra-large) {
+      .title {
+        word-wrap: break-word;
+      }
+    }
+    .go-back {
+      margin-top: 1em;
+    }
+  }
+  p.warning {
+    color: var(--danger);
+  }
+}
+
+.content-list {
+  width: 27%;
+  float: left;
+  li a span.count {
+    font-size: $font-down-1;
+    float: right;
+    margin-right: 10px;
+    background-color: var(--primary-low);
+    padding: 2px 5px;
+    border-radius: 5px;
+    color: var(--primary);
+  }
+}
+
+.content-body {
+  float: left;
+  width: 60%;
 }
 
 .admin-content {
   margin-bottom: 50px;
   .admin-contents {
-    padding: 8px;
-
-    .ace-wrapper {
-      height: 400px;
-    }
+    padding: 0 0 8px 0;
+    @include clearfix();
   }
-
+  .view-options {
+    float: right;
+  }
   table.report {
     margin-top: 20px;
     tr {
@@ -43,99 +299,312 @@
       }
     }
 
+    tr.total-for-period,
+    tr.total {
+      td {
+        font-weight: 700;
+      }
+    }
+
+    &.web_crawlers {
+      tr {
+        th:nth-of-type(1) {
+          width: 60%;
+        }
+      }
+      td.x-value {
+        max-width: 0;
+        @include ellipsis;
+      }
+    }
     .bar-container {
       float: left;
       width: 300px;
       margin-right: 15px;
       margin-bottom: 5px;
       display: inline-block;
-
       .bar {
         margin-top: 5px;
-        background-color: $tertiary;
+        background-color: var(--tertiary);
         display: inline-block;
         text-align: right;
         padding-right: 8px;
-        color: $secondary;
+        color: var(--secondary);
       }
     }
   }
 }
 
-.admin-loading {
-  width: 100px;
-  margin: 0 auto 30px auto;
-  background-color: $primary;
-  @include border-radius-all(10px);
-  padding: 10px 10px 10px 30px;
-  font-size: 15px;
-  line-height: 23px;
-  text-align: center;
-  color: $secondary;
-  background: {
-    image: image-url("spinner_96_w.gif");
-    repeat: no-repeat;
-    position: 10px 8px;
-    size: 25px;
-  };
+.full-reason {
+  white-space: pre-wrap;
+}
+
+.admin-users .users-list {
+  .username .d-icon {
+    color: var(--primary-medium);
+  }
+}
+
+.ip-lookup {
+  position: relative;
+  display: inline-block;
+  .location-box {
+    position: absolute;
+    width: 460px;
+    right: 0;
+    z-index: z("dropdown");
+    box-shadow: shadow("card");
+    margin-top: -2px;
+    background-color: var(--secondary);
+    padding: 12px 12px 5px;
+    .powered-by {
+      font-size: $font-down-1;
+      position: absolute;
+      bottom: -10px;
+      left: 10px;
+    }
+    .other-accounts {
+      margin: 5px 0 0;
+      max-height: 200px;
+      overflow: auto;
+      width: 455px;
+      ul {
+        margin: 0;
+      }
+      li {
+        list-style: none;
+      }
+      tr td:first-of-type {
+        width: 130px;
+      }
+    }
+  }
 }
 
 .admin-container {
-  margin-top: 20px;
+  margin-top: 10px;
+
+  .username {
+    input {
+      min-width: 15em;
+      @media screen and (max-width: 500px) {
+        box-sizing: border-box;
+        width: 100%;
+      }
+    }
+  }
+  .select-kit {
+    width: 350px;
+  }
+  .select-kit.multi-select {
+    width: 500px;
+  }
+  .select-kit.dropdown-select-box {
+    width: auto;
+  }
+  .search-logs-filter {
+    margin-left: auto;
+    @media screen and (max-width: 700px) {
+      flex: 1 1 100%;
+      margin-left: 0;
+    }
+  }
+
+  .header-search-results {
+    clear: both;
+    padding: 4px;
+  }
+  @include breakpoint(tablet) {
+    .select-kit.period-chooser
+      .period-chooser-header
+      h2.selected-name
+      .top-date-string {
+      font-size: $font-down-3;
+    }
+  }
+  .controls {
+    @include clearfix;
+  }
+  .users-list-container {
+    overflow-x: auto;
+  }
+}
+
+.admin-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  .show-emails,
+  .hide-emails {
+    margin-left: auto;
+  }
 }
 
 .admin-controls {
-  background-color: darken($secondary, 5%);
-  padding: 10px 10px 3px 0;
-  height: 35px;
-  .nav.nav-pills {
-    li.active {
-      a {
-        border-color: scale-color($primary, $lightness: 90%);
-        background-color: lighten($primary, 40%);
-        &:hover {
-          background-color: lighten($primary, 40%);
+  display: flex;
+  background-color: var(--primary-low);
+  align-items: center;
+
+  .admin-actions {
+    margin-left: auto;
+  }
+  nav {
+    background-color: var(--primary-low);
+    width: 100%;
+  }
+  nav {
+    display: inline-flex;
+    position: relative;
+    flex: 1 0 0px;
+    height: auto;
+    overflow: hidden;
+    padding: 0;
+    height: 100%;
+    @include breakpoint(tablet) {
+      width: calc(100% + 10px);
+      padding-left: 10px;
+      margin-left: -10px;
+      margin-right: -10px;
+    }
+
+    &:before {
+      // Fade out sides of horizontal nav
+      content: "";
+      position: absolute;
+      width: 10px;
+      left: 0;
+      height: calc(100% - 5px);
+      background: linear-gradient(
+        to right,
+        rgba(var(--primary-low-rgb), 1),
+        rgba(var(--primary-low-rgb), 0)
+      );
+    }
+
+    &:after {
+      content: "";
+      position: absolute;
+      right: 0px;
+      width: 15px;
+      height: calc(100% - 5px);
+      background: linear-gradient(
+        to right,
+        rgba(var(--primary-low-rgb), 0),
+        rgba(var(--primary-low-rgb), 1)
+      );
+    }
+  }
+
+  .nav-pills {
+    width: calc(100% - 10px);
+    display: inline-flex;
+    padding: 10px;
+    margin: 0;
+    white-space: nowrap;
+    overflow-x: auto;
+    @include breakpoint(tablet) {
+      margin-left: -10px;
+      overflow-x: scroll;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    &:before {
+      display: none;
+    }
+    > li {
+      margin: 0;
+      a.active {
+        background: var(--primary-medium);
+      }
+      &:last-of-type {
+        > a {
+          margin-right: 25px;
         }
       }
     }
   }
   h1 {
-    font-size: 20px;
-    line-height: 25px;
-    color: $primary;
+    font-size: $font-up-3;
+    line-height: $line-height-medium;
+    color: var(--primary);
   }
   .controls {
-    margin-left: 10px;
+    background: var(--primary-low);
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    @include breakpoint(mobile-extra-large) {
+      margin: 0 -10px;
+    }
+    label {
+      margin-bottom: 0;
+    }
+    input {
+      margin-right: 5px;
+      margin-bottom: 0;
+      @include breakpoint(tablet) {
+        max-width: 150px;
+      }
+    }
+    &.search {
+      width: auto;
+      white-space: nowrap;
+      label {
+        flex: 1 1 250px;
+        display: flex;
+        align-items: center;
+        input {
+          margin-right: 0.5em;
+        }
+      }
+    }
+  }
+  .controls .menu-toggle {
+    display: none;
+    float: left;
+    padding: 5px 10px;
+    margin-right: 15px;
+    border: 1px solid var(--primary-medium);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--primary);
+    &:hover {
+      background-color: var(--primary-low-mid);
+    }
+    @media (max-width: $mobile-breakpoint) {
+      display: inline-block;
+    }
   }
   button {
     margin-right: 5px;
-
   }
-  input[type=text] {
+  input[type="text"] {
     display: inline-block;
     float: left;
   }
   .result-message {
     display: inline-block;
     padding-left: 10px;
-    padding-top: 5px;
   }
   .username {
-    input[type=text] {
+    input[type="text"] {
       width: 240px;
     }
   }
   .search {
-    float: right;
-    margin-left: 10px;
     label {
       margin-top: 5px;
     }
+    .controls {
+      margin-left: 0;
+    } // Hide the search checkbox for very small screens
+    // Todo: find somewhere to display it - probably requires switching its order in the html
+    @media (max-width: 550px) {
+      display: none;
+    }
   }
   .toggle {
-    margin-top: 8px;
-    float: right;
-
     span {
       font-weight: bold;
     }
@@ -144,751 +613,126 @@
     display: inline-block;
     margin-right: 5px;
   }
-}
-
-.site-settings-nav {
-  width: 200px;
-  margin-top: 30px;
-  .nav-stacked {
-    border-right: none;
-  }
-  li a.active {
-    color: $secondary;
-    background-color: $danger;
+  .pull-right {
+    padding-right: 10px;
   }
 }
 
-.site-settings-detail {
-  width: 850px;
-  @include medium-width { width: 740px; }
-  @include small-width  { width: 700px; }
-  min-height: 800px;
+.paste-users {
+  width: 400px;
+  height: 150px;
+}
+
+.groups,
+.badges,
+.web-hook-container {
+  .form-horizontal {
+    & > div {
+      margin-bottom: 20px;
+    }
+    .d-editor-textarea-wrapper {
+      max-width: 60%;
+      .d-editor-button-bar {
+        overflow: hidden;
+      }
+    }
+    input,
+    textarea,
+    select,
+    .select-box {
+      width: 350px;
+    }
+    input[type="checkbox"],
+    input[type="radio"] {
+      width: 20px;
+    }
+  }
+}
+
+.text-successful {
+  color: var(--success);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.text-muted {
+  color: var(--primary-medium);
+}
+
+.admin-nav {
+  width: 18%;
+  box-sizing: border-box;
+  position: relative; // The admin-nav becomes a slide-out menu at the mobile-nav breakpoint
+  @media (max-width: $mobile-breakpoint) {
+    position: absolute;
+    z-index: z("base") - 1;
+    width: 250px;
+  }
+  @media (max-width: 500px) {
+    width: 50%;
+  }
+}
+
+.admin-detail {
+  background-color: var(--secondary);
   margin-left: 0;
-  border-left: solid 1px scale-color($primary, $lightness: 90%);
+  border-left: solid 1px var(--primary-low);
   padding: 30px 0 30px 30px;
+  width: 82%;
+  box-sizing: border-box;
+  @media (max-width: $mobile-breakpoint) {
+    width: 95%;
+    border: none;
+  }
 }
 
-.settings {
-  .setting {
-    padding-bottom: 20px;
-
-    .setting-label {
-      float: left;
-      width: 196px;
-      @include medium-width { width: 176px; }
-      @include small-width  { width: 166px; }
-      margin-right: 12px;
-    }
-    .setting-value {
-      float: left;
-      width: 450px;
-      @include medium-width { width: 360px; }
-      @include small-width  { width: 330px; }
-    }
-    .setting-controls {
-      float: left;
-      width: 144px;
-    }
-    .input-setting-string {
-      width: 404px;
-      @include medium-width { width: 314px; }
-      @include small-width  { width: 284px; }
-    }
-    .input-setting-list {
-      width: 408px;
-      padding: 1px;
-      background-color: $secondary;
-      border: 1px solid scale-color($primary, $lightness: 90%);
-      border-radius: 3px;
-      box-shadow: inset 0 1px 1px rgba(51, 51, 51, 0.3);
-      -webkit-transition: border linear 0.2s, box-shadow linear 0.2s;
-      transition: border linear 0.2s, box-shadow linear 0.2s;
-
-      .list-input-item {
-        width: 90px;
-        margin: 2px 1px;
-        background-color: $secondary;
-        border: 1px solid scale-color($primary, $lightness: 90%);
-        border-radius: 3px;
-        box-shadow: inset 0 1px 1px rgba(51, 51, 51, 0.3);
-        -webkit-transition: border linear 0.2s, box-shadow linear 0.2s;
-        transition: border linear 0.2s, box-shadow linear 0.2s;
-
-        &:focus {
-          border-color: $tertiary;
-          outline: 0;
-          box-shadow: inset 0 1px 1px rgba(51, 51, 51, 0.3), 0 0 8px $tertiary;
-        }
-      }
-
-      .btn.list-add-value {
-        margin: 0px 3px;
-        padding: 4px 10px;
-        color: $tertiary;
-      }
-    }
-
-
-    .desc {
-      padding-top: 3px;
-      color: $primary;
-      font-size: 80%;
-      line-height: 1.4em;
-    }
-
-    h3 {
-      font-size: 13px;
-      font-weight: normal;
-    }
+.admin-detail.mobile-open {
+  @media (max-width: $mobile-breakpoint) {
+    transition: transform 0.3s ease;
+    @include transform(translateX(250px));
   }
+  @media (max-width: 500px) {
+    transition: transform 0.3s ease;
+    @include transform(translateX(50%));
+  }
+}
 
-  .setting.overridden {
-    input[type=text] {
-      background-color: scale-color($highlight, $lightness: 50%);
-    }
-
-    h3 {
-      color: scale-color($highlight, $lightness: -50%);
-    }
+.admin-detail.mobile-closed {
+  @media (max-width: $mobile-breakpoint) {
+    transition: transform 0.3s ease;
+    @include transform(translateX(0));
+    margin-left: -10px;
   }
 }
 
 section.details {
   h1 {
-    font-size: 15px;
-    background-color: scale-color($primary, $lightness: 90%);
-    color: $secondary;
-    padding: 0 10px;
-    margin: 0 0 5px 0;
+    font-size: $font-up-3;
+    color: var(--primary);
+    padding: 5px 10px;
+    margin: 30px 0 5px 0;
+    border-bottom: 5px solid var(--primary-low);
   }
 }
 
-#selected-controls {
-  background-color: scale-color($tertiary, $lightness: 75%);
-  padding: 8px;
-  min-height: 27px;
-  position: fixed;
-  bottom: 0;
-  width: 1075px;
-}
-
-.display-row {
-  line-height: 30px;
+.user-controls {
   padding: 5px;
-  &:nth-of-type(1) {
-    border-top: 0;
+  clear: both;
+  text-align: right;
+  .btn {
+    line-height: $line-height-medium;
   }
-  &.highlight-danger {
-    background-color: scale-color($danger, $lightness: 50%);
-  }
-  border-top: 1px solid scale-color($primary, $lightness: 90%);
-  &:before, &:after {
-    display: table;
-    content: "";
-  }
-  &:after {
-    clear: both;
-  }
-  .field {
-    font-weight: bold;
-    width: 196px;
-    float: left;
-    margin-left: 12px;
-  }
-  .value {
-    width: 250px;
-    float: left;
-    margin-left: 12px;
-  }
-  .long-value {
-    width: 800px;
-    float: left;
-    margin-left: 12px;
-    font-size: 13px;
-
-    button {
-      margin-left: 10px;
-    }
-  }
-
-  .controls {
-    width: 480px;
-    float: left;
-    margin-left: 12px;
+  @media (max-width: $mobile-breakpoint) {
     .btn {
-      margin-right: 5px;
+      margin: 2px;
     }
   }
-}
-
-// Badges area
-.badges {
-  .content-list ul {
-    margin-bottom: 10px;
-  }
-
-  .current-badge {
-    margin: 20px;
-  }
-
-  .form-horizontal {
-    label {
-      font-weight: bold;
-    }
-    & > div {
-      margin-top: 10px;
-    }
-    .delete-link {
-      margin-left: 15px;
-      margin-top: 5px;
-    }
-
-    input, textarea, select {
-      width: 350px;
-    }
-
-    input[type="checkbox"] {
-      width: 20px;
-    }
-
-    textarea {
-      height: 200px;
-    }
-  }
-
-  .buttons {
-    float: left;
-    width: 200px;
-    .saving {
-      padding: 5px 0 0 0;
-      margin-left: 10px;
-      width: 80px;
-      color: $primary;
-    }
-  }
-}
-
-// Customise area
-.customize {
-  .nav.nav-pills {
-    margin-left: 10px;
-  }
-  .content-list, .current-style {
-    float: left;
-  }
-  .content-list ul {
-    margin-bottom: 10px;
-  }
-  .current-style {
-    .delete-link {
-      margin-left: 15px;
-      margin-top: 5px;
-    }
-    .preview-link {
-      margin-left: 15px;
-    }
-    padding-left: 10px;
-    width: 65%;
-    .style-name {
-      width: 600px;
-      height: 25px;
-      font-size: 20px;
-    }
-    .ace-wrapper {
-      position: relative;
-      height: 400px;
-      width: 100%;
-    }
-    .ace_editor {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-    }
-    .status-actions {
-      float: right;
-      margin-top: 7px;
-      span {
-        margin-right: 10px;
-      }
-    }
-    .buttons {
-      float: left;
-      width: 200px;
-      .saving {
-        padding: 5px 0 0 0;
-        margin-left: 10px;
-        width: 80px;
-        color: $primary;
-      }
-    }
-  }
-  .color-scheme {
-    .controls {
-      span, button, a {
-        margin-right: 10px;
-      }
-    }
-  }
-  .colors {
-    thead th       { border: none; }
-    td.hex         { width: 100px; }
-    .hex-input     { width: 80px; }
-    td.opacity     { width: 50px; }
-    .opacity-input { width: 30px; }
-    .hex, .opacity { text-align: center; }
-
-    .changed .name {
-      color: scale-color($highlight, $lightness: -50%);
-    }
-  }
-}
-
-
-.admin-flags {
-
-  tr.hidden-post td.excerpt { opacity: 0.4;  }
-  tr.deleted td.excerpt { opacity: 0.8; background-color: scale-color($danger, $lightness: 30%); }
-  td.message {
-    padding: 4px 8px;
-    background-color:  scale-color($highlight, $lightness: 30%);
-  }
-  td { vertical-align: top; }
-  th { text-align: left; }
-  .user { width: 40px; padding-top: 12px; }
-  .excerpt {
-    max-width: 740px;
-    width: 740px;
-    padding: 8px;
-    word-wrap: break-word;
-    .fa,h3 { display: inline-block; }
-
-  }
-  .flaggers {
-    font-size: 11px;
-    td {
-      vertical-align: middle;
-      padding: 3px;
-    }
-  }
-  .action {
-     button { margin: 4px; }
-     text-align: right;
-     padding-bottom: 20px;
-  }
-}
-
-/* Dashboard */
-
-.dashboard-left {
-  float: left;
-  width: 500px;
-  margin-top: 10px;
-}
-.dashboard-right {
-  float: right;
-  width: 500px;
-  margin-top: 10px;
-  margin-right: 15px;
-
-  @include medium-width {
-    width: 430px;
-  }
-  @include small-width {
-    width: 390px;
-  }
-
-  .dashboard-stats {
-    width: 100%;
-    margin-left: 0;
-  }
-}
-
-.version-check {
-  .version-number {
-    font-size: 18px;
-    font-weight: bold;
-    text-align: center;
-  }
-
-  .face {
-    width: 20px;
-  }
-
-  .version-notes .fa {
-    vertical-align: bottom;
-  }
-
-  &.critical .version-notes .normal-note {
-    display: none;
-  }
-  &.normal .version-notes .critical-note {
-    display: none;
-  }
-
-  .fa {
-    font-size: 26px;
-  }
-
-  .up-to-date {
-    color: $success;
-  }
-  .updates-available {
-    color: $danger;
-  }
-  .critical-updates-available {
-    color: $danger;
-  }
-}
-
-.update-nag {
-  i.fa {
-    font-size: 20px;
-  }
-}
-
-table.api-keys {
-  margin-top: 10px;
-  width: 100%;
-
-  th {
-    text-align: left;
-    padding: 5px;
-  }
-
-  td {
-    padding: 5px;
-  }
-
-  td.key {
-    font-size: 12px;
-  }
-}
-
-.dashboard-stats {
-  margin-bottom: 30px;
-  width: 460px;
-  margin-left: 30px;
-
-  h4 {
-    font-weight: normal;
-    margin-bottom: 8px;
-  }
-
-  table {
-    width: 100%;
-
-    .title {
-      i.fa {
-        color: $primary;
-      }
-    }
-
-    th {
-      font-weight: normal;
-      text-align: center;
-      background-color: scale-color($primary, $lightness: 90%);
-    }
-    th.title {
-      text-align: left;
-    }
-    thead {
-      tr:hover > td {
-        background-color: $secondary;
-      }
-      tr:hover > th {
-        background-color: scale-color($primary, $lightness: 75%);
-      }
-    }
-
-    td.value {
-      font-weight: bold;
-      text-align: center;
-
-      i {
-        display: none;
-      }
-
-      &.trending-up {
-        color: $success;
-        i.up {
-          display: inline;
-        }
-      }
-      &.trending-down {
-        color: $danger;
-        i.down {
-          display: inline;
-        }
-      }
-      &.no-change {
-        i.down {
-          display: inline;
-          visibility: hidden;
-        }
-      }
-    }
-  }
-
-  &.detected-problems {
-    @include border-radius-all(5px);
-    background-color: scale-color($primary, $lightness: 90%);
-    margin-bottom: 20px;
-    margin-top: 10px;
-    box-shadow: inset 0 0 10px rgba($primary, .1);
-
-    .look-here {
-      float: left;
-      margin: 20px 10px 0 10px;
-
-      .fa {
-        font-size: 32px;
-        vertical-align: middle;
-        color: $primary
-      }
-    }
-
-    .problem-messages {
-      float: left;
-      width: 395px;
-      a {
-        text-decoration: underline;
-      }
-      .actions {
-        text-align: right;
-      }
-      .btn {
-        background-color: lighten($primary, 60%);
-      }
-      ul {
-        margin-left: 0;
-      }
-  }
-}
-
-  &.totals {
-    table {
-      width: auto;
-    }
-    margin-top: 12px;
-    padding-left: 5px;
-    .value {
-      text-align: left;
-      font-weight: bold;
-      padding-left: 8px;
-      padding-right: 30px;
-    }
-  }
-
-  &.trust-levels {
-    margin-bottom: 0;
-    table {
-      margin-bottom: 0;
-    }
-    td.value {
-      width: 45px;
-    }
-  }
-
-  .referred-topic-title {
-    width: 410px;
-    @include medium-width { width: 360px; }
-    @include small-width  { width: 320px; }
-  }
-}
-
-
-.commits-widget {
-  border: solid 1px scale-color($primary, $lightness: 90%);
-  width: 500px;
-  height: 180px;
-  margin-bottom: 36px;
-
-  @include medium-width {
-    width: 430px;
-  }
-  @include small-width {
-    width: 390px;
-  }
-
-  ul, li {
-    margin: 0;
-    padding: 0;
-  }
-  ul {
-    list-style: none;
-  }
-  a {
-    color: $primary;
-    text-decoration: none;
-  }
-  a:hover {
-    text-decoration: underline;
-  }
-
-  .header {
-    color: $primary;
-    font-weight: bold;
-    height: 30px;
-    background-color: scale-color($primary, $lightness: 75%);
-    cursor: pointer;
-
-    h1 {
-      font-size: 18px;
-      margin: 5px 0 0 8px;
-      display: inline-block;
-      line-height: 1.0em;
-    }
-  }
-
-  .header:hover h1 {
-    color: $tertiary;
-  }
-
-  .commits-list {
-    height: 149px;
-    overflow-y:auto;
-
-    li {
-      @extend .clearfix;
-      line-height: 1.0em;
-      padding: 6px 8px;
-    background-color: scale-color($primary, $lightness: 90%);
-      .left {
-        float: left;
-      }
-      .right {
-        margin-left: 52px;
-      }
-
-      img {
-        margin-top: 2px;
-        border: solid 1px scale-color($primary, $lightness: 90%);
-        padding: 2px;
-        background-color: $secondary;
-      }
-
-      .commit-message {
-        color: $primary;
-        font-size: 12px;
-        font-weight: bold;
-      }
-
-      .commit-meta {
-        color: $primary;
-        font-size: 12px;
-      }
-
-      .committer-name {
-        font-weight: bold;
-        color: $primary;
-      }
-    }
-    li:last-child {
-      border: none;
-    }
-  }
-
-  // Always show the scrollbar:
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: scale-color($primary, $lightness: 75%);
-    -webkit-border-radius: 3px;
-  }
-  ::-webkit-scrollbar-track {
-    border-left: solid 1px scale-color($primary, $lightness: 90%);
-  }
-}
-
-.content-list {
-
-  h3 {
-    color: $primary;
-    font-size: 15px;
-    padding-left: 5px;
-    margin-bottom: 10px;
-  }
-
-  ul {
-    list-style: none;
-    margin: 0;
-
-    li:first-of-type {
-      border-top: 1px solid scale-color($primary, $lightness: 90%);
-    }
-    li {
-      border-bottom: 1px solid scale-color($primary, $lightness: 90%);
-    }
-
-    li a {
-      display: block;
-      padding: 10px;
-      color: $primary;
-
-      &:hover {
-        background-color: scale-color($primary, $lightness: 90%);
-        color: $primary;
-      }
-
-      &.active {
-        font-weight: bold;
-        color: $primary;
-      }
-    }
-  }
-}
-
-.content-editor {
-  min-height: 500px;
-
-  float: left;
-  width: 760px;
-  @include medium-width { width: 650px; }
-  @include small-width { width: 600px; }
-  margin-left: 20px;
-
-  p.description {
-    color: $primary;
-  }
-
-  .controls {
-    margin-top: 10px;
-  }
-
-  #pagedown-editor {
-    width: 98%;
-  }
-
-  textarea.plain {
-    width: 98%;
-    height: 200px;
-  }
-
-  #wmd-input {
-    width: 98%;
-    height: 200px;
-  }
-
-  .ace-wrapper {
-    position: relative;
-    height: 600px;
-    width: 100%;
-  }
-  .ace_editor {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-  }
-
 }
 
 .row.groups {
-  input[type='text'] {
+  input[type="text"] {
     width: 500px;
   }
   input#group-users {
@@ -896,216 +740,297 @@ table.api-keys {
   }
 }
 
-// Logs
-
-.admin-logs-table {
-  input.ember-text-field {
-    padding: 1px 4px;
-  }
-  .btn {
-    padding: 2px 8px;
-    .fa {
-      margin-right: 2px;
-    }
-  }
-}
-
-.screened-emails, .screened-urls, .screened-ip-addresses {
-  .email, .url, .domain {
-    width: 300px;
-  }
-  .action, .match_count, .last_match_at, .created_at {
-    text-align: center;
-    width: 110px;
-  }
-}
-
-.screened-ip-address-form {
-  margin-left: 6px;
-  .combobox {
-    width: 130px;
-    top: 10px;
-  }
-}
-
-.screened-emails, .screened-urls {
-  .ip_address {
-    width: 110px;
-    text-align: center;
-  }
-}
-.screened-ip-addresses {
-  .ip_address {
-    width: 150px;
-    text-align: left;
-    input {
-      width: 130px;
-    }
-  }
-  .col.actions {
-    width: 275px;
-    padding-top: 4px;
-    a {
-      text-decoration: underline;
-    }
-  }
-}
-
-.staff-actions {
-  width: 100%;
-  .action {
-    width: 120px;
-  }
-  .staff_user {
-    width: 100px;
-  }
-  .subject {
-    width: 200px;
-  }
-  .created_at {
-    width: 50px;
-  }
-  .context {
-    width: 200px;
-  }
-  .created_at {
-    text-align: center;
-  }
-  .details {
-    width: 300px;
-    a {
-      text-decoration: underline;
-    }
-    &.value {
-      height: 70px;
-    }
-  }
-}
-
-.staff-action-logs-controls {
-  margin: 0 0 20px 6px;
-  a.filter {
-    display: inline-block;
-    background-color: scale-color($primary, $lightness: 75%);
-    padding: 3px 10px;
-    border-radius: 3px;
-
-    color: $primary;
-    &:hover {
-      color: $primary;
-      background-color: scale-color($primary, $lightness: 90%);
-
-
-    }
-    .label {
-      font-weight: bold;
-    }
-    i {
-      margin-left: 6px;
-    }
-  }
-}
-
-.staff-action-logs-instructions {
-  margin: 0 0 10px 10px;
-}
-
 // Ember.ListView
-
 .ember-list-view {
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
 }
+
 .ember-list-item-view {
   position: absolute;
 }
 
-.staff-actions, .screened-emails, .screened-urls, .screened-ip-addresses {
+.tl3-requirements {
+  .d-icon-check {
+    color: var(--success);
+  }
+  .d-icon-times {
+    color: var(--danger);
+  }
+}
 
-  border-bottom: dotted 1px scale-color($primary, $lightness: 75%);
-
-  .heading-container {
+@media all and (min-width: 320px) and (max-width: 500px) {
+  .full-width {
+    margin: 0;
+  }
+  .site-settings-nav {
     width: 100%;
-    background-color: scale-color($primary, $lightness: 90%);
   }
-  .col.heading {
-    font-weight: bold;
-    padding: 4px 0;
-  }
-  .col {
-    display: inline-block;
-    padding-top: 6px;
-    vertical-align: top;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  .ember-list-item-view {
+  .site-settings-detail {
     width: 100%;
-    border-top: solid 1px scale-color($primary, $lightness: 90%);
+    padding: 0;
+    border: none;
+    .settings .setting {
+      .setting-label {
+        float: left;
+        width: 100%;
+        h3 {
+          margin-bottom: 5px;
+          font-weight: bold;
+          margin-top: 25px;
+        }
+      }
+      .setting-value {
+        width: 100%;
+      }
+    }
+  }
+  .content-editor {
+    width: 100%;
+  }
+  div.ac-wrap {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .dashboard-left,
+  .dashboard-right {
+    width: 100%;
+  }
+  .dashboard-stats {
+    margin: 0;
+  }
+  .badges {
+    .current-badge {
+      margin: 70px 0 0 0;
+    }
+    .current-badge-actions {
+      padding: 0;
+    }
+  }
+  .customize .content-list,
+  .customize .current-style {
+    width: 100%;
   }
 }
 
-.log-details-modal {
-  .modal-tab {
-    width: 95%;
+tr.not-activated {
+  td,
+  td a,
+  td a:visited {
+    color: #bbb;
   }
 }
 
-.leader-requirements {
-  .fa-check {
-    color: $success;
-  }
-  .fa-times {
-    color: $danger;
-  }
-}
-
-// Backups
-// --------------------------------------------------
-
-$rollback: #3D9970;
-$rollback-dark: darken($rollback, 10%) !default;
-$rollback-darker: darken($rollback, 20%) !default;
-
-.btn-rollback {
-  color: $secondary;
-  background: $rollback;
-  &:hover {
-    background: $rollback-dark;
-  }
-  &:active {
-    @include linear-gradient($rollback-darker, $rollback-dark);
-  }
-  &[disabled] {
-    background: $rollback;
+.details.not-activated {
+  .username .value,
+  .email .value a,
+  .email .value a:visited {
+    color: #bbb;
   }
 }
 
-.admin-backups-logs {
-  max-height: 500px;
-  overflow: auto;
+.preview {
+  margin-top: 5px;
 }
 
-
-button.ru {
-  position: relative;
-  min-width: 110px;
+table#user-badges {
+  .reason {
+    max-width: 200px;
+  }
 }
 
-.ru-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: rgba(0, 175, 0, 0.3);
+@mixin value-btn {
+  width: 29px;
+  border: 1px solid var(--primary-low);
+  outline: none;
+  padding: 0;
+
+  &:focus {
+    border-color: var(--tertiary);
+  }
 }
 
-.is-uploading:hover .ru-progress {
-  background: rgba(200, 0, 0, 0.3);
+.value-list {
+  .value {
+    padding: 0.125em 0;
+    @include ellipsis;
+    display: flex;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .value-input {
+      box-sizing: border-box;
+      flex: 1 0 0px;
+      border-color: var(--primary-low);
+      cursor: pointer;
+      margin: 0;
+
+      &:focus {
+        border-color: var(--tertiary);
+        box-shadow: none;
+      }
+    }
+
+    .remove-value-btn {
+      @include value-btn;
+      margin-right: 0.25em;
+    }
+  }
+  .values {
+    margin-bottom: 0.5em;
+  }
 }
 
-.invisible {
-  visibility: hidden;
+.emoji-value-list {
+  margin-left: 0;
+
+  .emoji-details {
+    display: flex;
+    align-items: center;
+    min-height: 30px;
+    padding: $input-padding;
+    line-height: 1;
+    color: var(--primary);
+    border: 1px solid var(--primary-low);
+
+    .emoji-name {
+      margin-left: 0.5em;
+    }
+
+    &:not(.can-edit) {
+      pointer-events: none;
+      background-color: var(--primary-very-low);
+    }
+  }
+
+  .value-input {
+    flex-direction: row;
+  }
 }
+
+.value .add-emoji-button {
+  display: block;
+  background-color: var(--primary-low);
+  border: none;
+}
+
+.value .add-value-btn,
+.shift-up-value-btn,
+.shift-down-value-btn {
+  @include value-btn;
+  margin-right: 0 !important;
+  margin-left: 0.25em;
+}
+
+.secret-value-list {
+  .value {
+    flex-flow: row wrap;
+    margin-left: -0.25em;
+    margin-top: -0.125em;
+    .new-value-input {
+      flex: 1 0 0px;
+    }
+    .value-input,
+    .new-value-input {
+      margin-top: 0.125em;
+      &:last-of-type {
+        margin-left: 0.25em;
+      }
+    }
+    .remove-value-btn {
+      margin-left: 0.25em;
+      margin-top: 0.125em;
+    }
+    .add-value-btn {
+      @include value-btn;
+      margin-left: 0.25em;
+      margin-top: 0.125em;
+    }
+    .new-value-input {
+      margin-left: 0.25em;
+    }
+  }
+}
+
+.mobile-view .secret-value-list {
+  .add-value-btn {
+    margin-bottom: 9px;
+  }
+  .value {
+    .value-input:last-of-type {
+      margin-left: 2.35em;
+    }
+    .new-value-input:first-of-type {
+      margin-right: 2.15em;
+      margin-left: 0.25em;
+    }
+  }
+}
+
+.simple-list-input {
+  display: flex;
+
+  .add-value-input {
+    margin: 0;
+    box-sizing: border-box;
+    flex: 1 0 0px;
+  }
+
+  .add-value-btn {
+    margin-left: 0.25em;
+  }
+}
+
+// Mobile view text-inputs need some padding
+.mobile-view .admin-contents {
+  input[type="text"] {
+    padding: 4px;
+  }
+}
+
+.mobile-view .full-width {
+  margin: 0;
+}
+
+// Mobile specific style for Admin IP Lookup box
+.mobile-view .admin-contents .ip-lookup .location-box {
+  width: 300px;
+  left: -100%;
+}
+
+.inline-edit label {
+  display: inline-block;
+  margin-right: 20px;
+}
+
+a.inline-editable-field {
+  color: var(--primary);
+  cursor: pointer;
+}
+
+// Styles for subtabs in admin
+@import "common/admin/dashboard";
+@import "common/admin/settings";
+@import "common/admin/users";
+@import "common/admin/suspend";
+@import "common/admin/badges";
+@import "common/admin/emails";
+@import "common/admin/staff_logs";
+@import "common/admin/customize";
+@import "common/admin/customize-install-theme";
+@import "common/admin/api";
+@import "common/admin/backups";
+@import "common/admin/plugins";
+@import "common/admin/admin_reports";
+@import "common/admin/admin_report";
+@import "common/admin/admin_report_counters";
+@import "common/admin/admin_report_chart";
+@import "common/admin/admin_report_stacked_chart";
+@import "common/admin/admin_report_table";
+@import "common/admin/admin_report_inline_table";
+@import "common/admin/admin_intro";
+@import "common/admin/admin_emojis";

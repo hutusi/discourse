@@ -1,113 +1,154 @@
+// Mobile
 // global styles that apply to the Discourse application specifically
 // BEWARE: changing these styles implies they take effect anywhere they are seen
 // throughout the Discourse application
 
-body {
-  background-color: $secondary;
-}
-
-.container {
-  @extend .clearfix;
-  margin-right: auto;
-  margin-left: auto;
-}
-
-.full-width {
-  margin-left: 12px;
-}
+// Base Elements
 
 body {
+  background-color: var(--secondary);
+}
 
-  .boxed {
-    height: 100%;
-    @include border-radius-all(5px);
-    .contents {
-      padding: 10px 10px 10px 10px;
-    }
-    &.white {
-      background-color: $secondary;
-    }
+.ios-device {
+  textarea {
+    background-color: var(--secondary);
+    font-size: $font-size-ios-input;
+    -webkit-tap-highlight-color: transparent;
   }
-  #main {
-    .fa-star.starred {
-      color: $danger;
-    }
-    a.star {
-      display: inline-block;
-      font-size: 15px;
-      line-height: 1;
-      color: scale-color($primary, $lightness: 75%);
-      margin-right: 3px;
-      &:before {
-        font-family: "FontAwesome";
-        content: "\f005";
-      }
-      &.starred {
-        color: $danger;
-        @include hover {
-          opacity: 1;
-          &:before {
-            content: "\f005";
-          }
-        }
-      }
-      @include hover {
-        opacity: 0.6;
-      }
 
-      &:active {
-        opacity: 1;
-      }
-    }
-    img.avatar {
-      &.header {
-        width: 45px;
-        height: 45px;
-      }
-      &.medium {
-        width: 32px;
-        height: 32px;
-      }
-      &.small {
-        width: 25px;
-        height: 25px;
-      }
-      &.tiny {
-        width: 20px;
-        height: 20px;
-      }
-    }
-    .user-list {
-      .user {
-        padding-bottom: 5px;
-      }
+  input {
+    &[type="text"],
+    &[type="password"],
+    &[type="datetime"],
+    &[type="datetime-local"],
+    &[type="date"],
+    &[type="month"],
+    &[type="time"],
+    &[type="week"],
+    &[type="number"],
+    &[type="email"],
+    &[type="url"],
+    &[type="search"],
+    &[type="tel"],
+    &[type="color"] {
+      font-size: $font-size-ios-input;
     }
   }
 
-
+  input#reply-title {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
-
 
 blockquote {
   /* 13px left is intentional here to properly align with post quotes */
   padding: 10px 8px 10px 13px;
-  background-color: scale-color($primary, $lightness: 95%);
-  border-left: 5px solid scale-color($primary, $lightness: 75%);
+
   p {
     margin: 0 0 10px 0;
+
+    &:last-of-type {
+      margin-bottom: 0;
+    }
   }
 }
 
-.topic-statuses {
-  display: inline-block;
+// Common classes
+.boxed {
+  .contents {
+    padding: 10px 0 0 0;
+  }
+}
+
+.control-group {
+  margin-bottom: 9px;
+}
+
+.mobile-nav {
   margin: 0;
   padding: 0;
-  .topic-status {
-    margin: 0;
-    display: inline-block;
-    i {
-      font-size: 15px;
-      color: darken($secondary, 60%);
+  list-style: none;
+  overflow: visible;
+  position: relative;
+  border: 1px solid var(--primary-medium);
+  // Prevents the dropdowns from collapsing while content loads, so they look more like placeholders and less like dark 2px lines
+  min-height: 37px;
+
+  a {
+    color: var(--primary);
+    .d-icon {
+      margin-right: 0.25em;
+      color: var(--primary-medium);
     }
   }
+
+  > li > a {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  .expander .selection {
+    @include ellipsis;
+  }
+
+  .expander > .d-icon {
+    &:last-of-type {
+      margin-left: auto;
+      margin-right: 0;
+    }
+  }
+
+  .drop {
+    display: none;
+    &.expanded {
+      left: 0;
+      display: block;
+      position: absolute;
+      z-index: z("dropdown");
+      background-color: var(--secondary);
+      width: 100%;
+      list-style: none;
+      margin: 0;
+      padding: 5px;
+      border: 1px solid var(--primary-low);
+      box-sizing: border-box;
+
+      li {
+        margin: 5px 0;
+        padding: 0;
+
+        a {
+          height: 100%;
+          display: block;
+          padding: 5px 8px;
+          @include ellipsis;
+        }
+      }
+    }
+  }
+}
+
+.form-vertical {
+  .control-group {
+    margin-bottom: 12px;
+  }
+}
+
+// Special elements
+
+#main-outlet {
+  padding-top: 1.25em;
+}
+
+#main {
+  position: relative;
+}
+
+// Styles used before the user is logged into discourse. For example, activating
+// their account or changing their email.
+#simple-container {
+  width: 90%;
 }

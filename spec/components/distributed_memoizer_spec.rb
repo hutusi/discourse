@@ -1,12 +1,13 @@
-require 'spec_helper'
-require_dependency 'distributed_memoizer'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe DistributedMemoizer do
 
   before do
-    $redis.del(DistributedMemoizer.redis_key("hello"))
-    $redis.del(DistributedMemoizer.redis_lock_key("hello"))
-    $redis.unwatch
+    Discourse.redis.del(DistributedMemoizer.redis_key("hello"))
+    Discourse.redis.del(DistributedMemoizer.redis_lock_key("hello"))
+    Discourse.redis.unwatch
   end
 
   # NOTE we could use a mock redis here, but I think it makes sense to test the real thing
@@ -17,9 +18,9 @@ describe DistributedMemoizer do
   end
 
   it "returns the value of a block" do
-    memoize do
+    expect(memoize do
       "abc"
-    end.should == "abc"
+    end).to eq("abc")
   end
 
   it "return the old value once memoized" do
@@ -28,9 +29,9 @@ describe DistributedMemoizer do
       "abc"
     end
 
-    memoize do
+    expect(memoize do
       "world"
-    end.should == "abc"
+    end).to eq("abc")
   end
 
   it "memoizes correctly when used concurrently" do
@@ -47,8 +48,8 @@ describe DistributedMemoizer do
     end
 
     threads.each(&:join)
-    results.uniq.length.should == 1
-    results.count.should == 5
+    expect(results.uniq.length).to eq(1)
+    expect(results.count).to eq(5)
 
   end
 

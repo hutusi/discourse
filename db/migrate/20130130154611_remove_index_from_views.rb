@@ -1,4 +1,6 @@
-class RemoveIndexFromViews < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class RemoveIndexFromViews < ActiveRecord::Migration[4.2]
   def up
     remove_index "views", name: "unique_views"
     change_column :views, :viewed_at, :date

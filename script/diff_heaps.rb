@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # to be used to compare ruby heaps generated in 2.1
 # can isolate memory leaks
 #
@@ -30,11 +32,10 @@ end
 
 diff.group_by do |x|
   [x["type"], x["file"], x["line"]]
-end.map {|x,y|
- [x, y.count]
-}.sort{ |a,b|
- b[1] <=> a[1]
-}.each{ |x,y|
+end.map { |x, y|
+  [x, y.count]
+}.sort { |a, b|
+  b[1] <=> a[1]
+}.each { |x, y|
   puts "Leaked #{y} #{x[0]} objects at: #{x[1]}:#{x[2]}"
 }
-

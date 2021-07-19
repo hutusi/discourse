@@ -1,33 +1,45 @@
+# frozen_string_literal: true
+
 require "demon/rails_autospec"
+require "chrome_installed_checker"
 
 module Autospec
 
   class QunitRunner < BaseRunner
 
     WATCHERS = {}
-    def self.watch(pattern, &blk); WATCHERS[pattern] = blk; end
-    def watchers; WATCHERS; end
+    def self.watch(pattern, &blk)
+      WATCHERS[pattern] = blk
+    end
+    def watchers
+      WATCHERS
+    end
 
     # Discourse specific
-    watch(%r{^app/assets/javascripts/discourse/(.+)\.js$}) { |m| "test/javascripts/#{m[1]}_test.js" }
-    watch(%r{^app/assets/javascripts/admin/(.+)\.js$})     { |m| "test/javascripts/admin/#{m[1]}_test.js" }
+    watch(%r{^app/assets/javascripts/discourse/(.+)\.js$}) { |m| "test/javascripts/#{m[1]}-test.js" }
+    watch(%r{^app/assets/javascripts/admin/(.+)\.js$})     { |m| "test/javascripts/admin/#{m[1]}-test.js" }
     watch(%r{^test/javascripts/.+\.js$})
+    watch(%r{^app/assets/javascripts/discourse/tests/.+\.js$})
 
     RELOADERS = Set.new
-    def self.reload(pattern); RELOADERS << pattern; end
-    def reloaders; RELOADERS; end
+    def self.reload(pattern)
+      RELOADERS << pattern
+    end
+    def reloaders
+      RELOADERS
+    end
 
     # Discourse specific
-    reload(%r{^test/javascripts/fixtures/.+_fixtures\.js$})
-    reload(%r{^test/javascripts/(helpers|mixins)/.+\.js$})
-    reload("test/javascripts/test_helper.js")
+    reload(%r{^discourse/tests/javascripts/fixtures/.+_fixtures\.js(\.es6)?$})
+    reload(%r{^discourse/tests/javascripts/(helpers|mixins)/.+\.js(\.es6)?$})
+    reload("app/assets/javascripts/discoruse/tests/javascripts/test_helper.js")
+
+    watch(%r{^plugins/.*/test/.+\.js(\.es6)?$})
 
     require "socket"
 
-    class PhantomJsNotInstalled < Exception; end
-
     def initialize
-      ensure_phantomjs_is_installed
+      ChromeInstalledChecker.run
     end
 
     def start
@@ -49,17 +61,24 @@ module Autospec
 
     def run(specs)
       puts "Running Qunit: #{specs}"
+      Demon::RailsAutospec.ensure_running
 
       abort
 
-      qunit_url = "http://localhost:#{port}/qunit"
+      qunit_url = +"http://localhost:#{port}/qunit"
 
-      if specs != "spec" && specs.split.length == 1
-        module_name = try_to_find_module_name(specs.strip)
-        qunit_url << "?module=#{module_name}" if module_name
+      if specs != "spec"
+        module_or_filename, test_id, _name = specs.strip.split(":::")
+        module_name = module_or_filename
+        if !test_id
+          module_name = try_to_find_module_name(module_or_filename)
+          qunit_url << "?module=#{module_name}" if module_name
+        else
+          qunit_url << "?testId=#{test_id}"
+        end
       end
 
-      cmd = "phantomjs #{Rails.root}/lib/autospec/run-qunit.js \"#{qunit_url}\""
+      cmd = "node #{Rails.root}/test/run-qunit.js \"#{qunit_url}\" 3000000 ./tmp/qunit_result"
 
       @pid = Process.spawn(cmd)
       _, status = Process.wait2(@pid)
@@ -89,17 +108,12 @@ module Autospec
     end
 
     def stop
-      # kill phantomjs first
       abort
       stop_rails_server
       @running = false
     end
 
     private
-
-    def ensure_phantomjs_is_installed
-      raise PhantomJsNotInstalled.new unless system("command -v phantomjs >/dev/null;")
-    end
 
     def port_available?(port)
       TCPServer.open(port).close
@@ -137,12 +151,27 @@ module Autospec
     end
 
     def try_to_find_module_name(file)
+      file, _ = file.split(/:\d+$/)
       return unless File.exists?(file)
       File.open(file, "r").each_line do |line|
         if m = /module\(['"]([^'"]+)/i.match(line)
           return m[1]
         end
+        if m = /moduleForWidget\(['"]([^"']+)/i.match(line)
+          return "widget:#{m[1]}"
+        end
+        if m = /acceptance\(['"]([^"']+)/i.match(line)
+          return "Acceptance: #{m[1]}"
+        end
+        if m = /moduleFor\(['"]([^'"]+)/i.match(line)
+          return m[1]
+        end
+        if m = /moduleForComponent\(['"]([^"']+)/i.match(line)
+          return m[1]
+        end
       end
+
+      nil
     end
 
   end

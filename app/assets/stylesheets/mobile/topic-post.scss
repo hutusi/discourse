@@ -1,22 +1,23 @@
-.gap {
-  background-color: scale-color($primary, $lightness: 95%);
-  padding: 5px 15px;
-  color: $primary;
-  text-align: center;
-  margin: 0 10px;
+/* hide the reply border above the time gap notices */
+.time-gap + .topic-post article {
+  border-top: none;
 }
 
-.topic-post {
-  border-top: 1px solid scale-color($primary, $lightness: 95%);
-  padding: 6px 0 3px 0;
+.time-gap {
+  .topic-avatar {
+    display: none;
+  }
 }
 
-nav.post-controls {
-  background-color: $secondary;
-  padding: 0;
-  border-right: 1px solid scale-color($primary, $lightness: 95%);
-  clear: both;
-  button {color: scale-color($primary, $lightness: 50%);
+.topic-post-visited {
+  + .topic-post article {
+    border-top: none;
+  }
+}
+
+.topic-post article {
+  border-top: 1px solid var(--primary-low);
+  padding: 15px 0 8px 0;
 }
 
 span.badge-posts {
@@ -25,59 +26,113 @@ span.badge-posts {
 
 .show-replies {
   display: none;
-  i {
-    margin-left: 5px;
-  }
 }
 
-
-
-button.create {
-  float: right !important;
-  margin-right: 0;
-  color: $primary;
-  padding-right: 7px;}
-}
-
-.create i {
-  margin-right: 5px;
-}
-
-
-button {
-  border: none;
-  font-size: 17px;
-  padding: 8px 10px;
-  vertical-align: top;
-  background: transparent;
-  float: left !important;
-  &.hidden {
-    display: none;
-  }
-  &.like, &.edit, &.flag, &.delete, &.share, &.bookmark, &.create {
-    float: right;
-  }
-  .read-icon {
-    &:before {
-      font-family: "FontAwesome";
-      content: "\f02e";
+.topic-post {
+  nav.post-controls {
+    color: var(--primary-low-mid-or-secondary-high);
+    &.expanded {
+      // on small devices with many buttons this can overflow
+      overflow-x: scroll;
     }
-    &.unseen {
-      &:before {
-        content: "\f097";
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+
+      // Handles the like and flag buttons in the post menu.
+      .double-button {
+        display: flex;
+        flex: 0 1 auto;
+        align-items: center;
+        button {
+          &.like,
+          &.read-indicator,
+          &.create-flag {
+            flex: 1 1 auto;
+          }
+          &.button-count {
+            padding: 8px 4px 8px 8px;
+            + .toggle-like,
+            + .create-flag {
+              padding: 8px 8px 8px 4px;
+            }
+            &.my-likes,
+            &.regular-likes {
+              display: flex;
+              max-width: unset;
+              padding: 8px;
+              .d-icon {
+                padding-left: 8px;
+              }
+            }
+          }
+        }
+      }
+      .d-icon {
+        opacity: 1;
+      }
+      button {
+        border: none;
+        font-size: $font-up-1;
+        padding: 10px 8px;
+        background: transparent;
+        flex: 1 1 auto;
+        max-width: 45px;
+        &.hidden {
+          display: none;
+        }
+        &.admin {
+          position: relative;
+        }
+        &.expand-post {
+          margin: 10px 0 10px 0;
+        }
+        &.reply {
+          .d-icon {
+            color: var(--primary-high);
+          }
+        }
+        &.has-like {
+          .d-icon {
+            color: var(--love);
+          }
+        }
+        &.bookmarked {
+          .d-icon {
+            color: var(--tertiary);
+          }
+        }
       }
     }
-    &.last-read {
-      color: $danger;}
-    &.bookmarked {
-      &:before {
-        color: $tertiary;
+    &.replies-button-visible {
+      display: flex;
+      align-items: center;
+      .show-replies {
+        display: flex;
+        font-size: $font-up-1;
+        padding: 10px 8px;
+        + .reply {
+          margin-left: 0;
+        }
+        .d-icon {
+          padding-left: 8px;
+          font-size: $font-down-1;
+        }
+      }
+      .actions {
+        flex-grow: 2;
       }
     }
   }
 }
 
-
+.post-admin-menu {
+  bottom: -50px;
+  left: 135px;
+  @media screen and (max-width: 374px) {
+    left: 50px;
+  }
+}
 
 .embedded-posts {
   .topic-meta-data h5 a {
@@ -85,258 +140,177 @@ button {
   }
 }
 
-
-.reply-new {
-  display: none;
+.post-actions {
+  /* overriding display: here was causing hidden element to take up space */
 }
 
-.post-actions {
-  margin-left: 10px;
-  margin-top: 2px;
+.post-action {
+  float: right;
+  margin-right: 10px;
+  clear: right;
+}
+
+.post-action .relative-date {
+  margin-left: 5px;
 }
 
 a.reply-to-tab {
-  display: none;
+  z-index: z("base") + 1;
+  color: var(--primary-med-or-secondary-med);
+  margin-right: 0.5em;
 }
 
-a.star {
-  display: inline-block;
-  float: left;
-  font-size: 1.3em;
-  margin-top: 4px;
-}
-
-#main a.star.starred {
-  text-shadow: none !important;
+.topic-post .boxed .contents {
+  clear: both;
 }
 
 .topic-map {
-
-  .btn {
-    border-radius: 0 4px 0 4px;
-  }
-
-  .topic-links li {
-    word-wrap: break-word;
-  }
-
-  border-radius: 5px;
-  margin: 15px 10px 20px 10px;
-  border: 1px solid scale-color($primary, $lightness: 95%);
-
-  h3 {
-    margin-bottom: 4px;
-    color: $primary;
-    line-height: 23px;
-  }
-
+  margin: 10px 0;
   h4 {
-    margin: 0 0 3px 0;
-    color: $primary;
-    font-weight: normal;
-    font-size: 12px;
-    line-height: 15px;
+    line-height: $line-height-medium;
   }
-
-  p,
-  .participants {
-    margin: 0 0 7px;
-  }
-
-  ul {
-    margin: 0;
-    list-style: none;
-  }
-
-  .avatars {
-    > div {
-      float: left;
-      position: relative;
-      margin: 3px 0;
-    }
-    .post-count {
-      position: absolute;
-      top: 2px;
-      right: 6px;
-      padding: 0 4px;
-      font-weight: normal;
-      font-size: 11px;
-      line-height: 14px;
-    }
-  }
-
-  .avatar {
+  .user {
     float: left;
-    margin-right: 4px;
+    margin-right: 10px;
   }
-
   .map-collapsed {
     .secondary {
       display: none;
     }
   }
-
   .map {
     li {
       float: left;
-      padding: 7px 11px;
+      padding: 7px 8px;
       &:last-of-type {
         border-right: 0;
       }
     }
-    a, .number {
-      font-weight: bold;
-      line-height: 20px;
+    .number {
+      line-height: $line-height-medium;
     }
-
+    .number,
+    .d-icon {
+      color: var(--primary-high-or-secondary-low);
+      font-size: $font-up-1;
+    }
     .avatar + a {
       float: left;
     }
   }
-  .avatars,
+  li.avatars {
+    display: none;
+  }
   .links,
-  .information {
-    padding: 7px 14px;
-    color: $primary;
+  .information,
+  .avatars {
+    padding: 10px;
+    color: var(--primary);
     overflow: auto;
   }
-
   .information {
-    border-top: 1px solid scale-color($primary, $lightness: 95%);
-  }
-
-  .domain {
-    color: scale-color($primary, $lightness: 75%);
-  }
-
-  .topic-links {
-    .badge-notification {
-      margin: 0 0 4px;
+    p {
+      margin: 0 0 10px 0;
     }
   }
   .buttons {
-    float: right;
     .btn {
       border: 0;
-      border-bottom: 1px solid scale-color($primary, $lightness: 95%);;
-      border-left: 1px solid scale-color($primary, $lightness: 95%);;
-      padding: 0 23px;
-      color: $primary;
-      background: scale-color($primary, $lightness: 90%);
-      &:hover {
-        background: scale-color($primary, $lightness: 75%);
-        color: $primary;
-        border-bottom: 1px solid scale-color($primary, $lightness: 95%);
-
-      }
+      padding: 0 15px;
+      color: var(--primary-med-or-secondary-high);
+      background: var(--blend-primary-secondary-5);
+      border-left: 1px solid var(--primary-low);
       .fa {
         margin: 0;
-        font-size: 18px;
+        font-size: $font-up-2;
         line-height: 52px;
       }
     }
   }
+  .link-summary .btn {
+    color: var(--primary-med-or-secondary-high);
+    background: var(--blend-primary-secondary-5);
+    width: 100%;
+  }
 }
 
 #topic-footer-buttons {
-  border-top: 1px solid scale-color($primary, $lightness: 95%);;
-  padding: 20px 10px 0 10px;
-}
-
-/* this is to force the drop-down notification state description para below the button */
-#topic-footer-buttons p {
-  clear: both;
-  margin: 0;
-}
-
-#suggested-topics {
-  clear: left;
-  padding: 20px 10px 15px 10px;
-    th.views, td.views, td.activity, th.activity, th.likes, td.likes {
-    display: none;
-    }
-
-   a.badge-category, a.badge-category-parent {
-    font-size: 10px;
-    vertical-align: top;
-    }
-
-   .title {
-    font-size: 14px; line-height: 8px;
+  .d-icon-bookmark.bookmarked,
+  .d-icon-discourse-bookmark-clock.bookmarked {
+    color: var(--tertiary);
   }
 
+  .topic-footer-main-buttons {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .topic-footer-mobile-dropdown {
+    margin-right: 0.5em;
+    display: flex;
+  }
+
+  .select-kit-header {
+    height: 100%;
+  }
+
+  .topic-notifications-button,
+  .pinned-button {
+    display: flex;
+    align-items: center;
+
+    .reason {
+      align-items: flex-start;
+      .select-kit {
+        max-width: 40%;
+      }
+    }
+    @include breakpoint(mobile-medium) {
+      display: inline-block;
+      .reason {
+        display: block;
+        margin: 0.5em 0 0 0;
+      }
+    }
+  }
 }
 
-
+.suggested-topics {
+  clear: left;
+  padding: 20px 0 15px 0;
+  th.views,
+  td.views,
+  td.activity,
+  th.activity,
+  th.likes,
+  td.likes {
+    display: none;
+  }
+  a.badge-category,
+  a.badge-category-parent {
+    font-size: $font-down-1;
+    vertical-align: top;
+  }
+}
 
 span.post-count {
-  background: $primary;
-  color: $secondary;
-  opacity: .8;
-}
-
-
-#topic-footer-buttons {
-  .btn {
-    margin-bottom: 5px;
-    margin-right: 10px;
-    .fa-star {margin-right: 5px;}
-  }
+  background: var(--primary);
+  color: var(--secondary);
+  opacity: 0.8;
 }
 
 #topic-title {
-  z-index: 1000;
-  background-color: scale-color($primary, $lightness: 95%);
-  margin: 0 0 0 0 !important;
-  padding: 15px 10px 15px 10px;
-}
-
-.topic-post {
-  article.boxed img {
-    max-width: 100%;
-    height: auto;
-  }
-  &.moderator {
-    background-color: scale-color($highlight, $lightness: 60%);
-  }
-}
-
-.quote-button {
-  display: none;
-  position: absolute;
-  background-color: scale-color($primary, $lightness: 50%);
-  color: $primary;
-  padding: 10px;
-  width: 90px;
-
-  &:hover {
-    background-color: scale-color($primary, $lightness: 50%);
-    cursor: pointer;
-  }
+  z-index: z("base") + 1;
+  margin: 0;
+  padding: 0 0 1em;
 }
 
 .quote-button.visible {
-  display: block;
+  z-index: z("tooltip");
 }
 
 iframe {
   max-width: 100%;
-}
-
-.extra-info {
-  display: none;
-}
-
-.topic-meta-data {
-  margin-bottom: 10px;
-}
-
-.open>.dropdown-menu {
-  display: block;
-}
-
-.dropdown-menu li  {
-  margin: 5px 0;
 }
 
 .btn-group {
@@ -349,156 +323,144 @@ iframe {
   position: relative;
 }
 
-.contents .cooked a {
-  word-wrap: break-word;
+.selected-posts {
+  padding: 0.1em 0.7em;
 }
 
-.modal-body {
-  input[type=text] {
-    font-size: 16px;
-    display: block;
-    margin-top: 10px;
-  }
+// hide the full set of selection buttons on mobile
+.select-posts button {
+  display: none;
 }
 
-
-#share-link {
-  width: 265px;
-  margin-left: -4px;
-
-    h3 {
-      margin: 5px 0;
-    }
-
-    input[type=text] {
-      font-size: 16px;
-      width: 92%;
-      margin-bottom: 10px;
-    }
-}
-
-#selected-posts {
-  padding-left: 20px;
-  .btn {
-    margin-bottom: 10px;
-  }
-}
-
-.post-select {
-  float: right;
-  margin-right: 20px;
-  margin-top: -20px;
-}
-
-.post-action .relative-date {
-  margin-left: 5px;
+// unhide the simple "select just this post" button
+button.select-post {
+  display: inline-block;
 }
 
 .deleted {
-background-color: scale-color($danger, $lightness: 75%);
-}
-
-#show-topic-admin {
-  color: scale-color($primary, $lightness: 50%);
-  right: 0;
-  border-right: 0;
-  padding-right: 4px;
-  padding-left: 5px;
-  border-radius: 4px 0 0 4px;
+  .topic-body {
+    background-color: var(--danger-low-mid);
+  }
 }
 
 .deleted-user-avatar {
-  font-size: 36px;
+  font-size: $font-up-5;
 }
 
-.staff a {
-  border-radius: 4px;
-  padding: 4px;
-  margin: -4px 0 0 -4px;
-  background-color: lighten(yellow, 35%);
+span.btn-text {
+  display: none;
 }
 
-.username a { color: scale-color($primary, $lightness: 30%); }
-.new-user a {
-  color: scale-color($primary, $lightness: 60%);
+blockquote {
+  clear: both;
+  /* leave browser defaults for top and bottom here */
+  margin-left: 0;
+  margin-right: 0;
+}
+
+pre.copy-codeblocks code {
+  padding-right: 2.75em;
+}
+
+.gap {
+  padding: 0.25em 0;
+}
+
+.posts-wrapper {
+  position: relative;
+}
+
+span.highlighted {
+  background-color: var(--highlight-low);
+}
+
+.topic-avatar {
+  float: left;
+  margin-right: 10px;
+  z-index: z("base") + 1;
+  /* must render on top of topic-body + topic-meta-data, otherwise not tappable */
 }
 
 .topic-meta-data {
-  white-space: nowrap;
-  float: left;
+  margin-left: 50px;
+  font-size: $font-down-1;
+  .names {
+    line-height: $line-height-medium;
+    display: flex;
+    flex-wrap: wrap;
+
+    .full-name {
+      font-weight: bold;
+    }
+
+    .first {
+      order: 1;
+    }
+
+    .poster-icon {
+      order: 2;
+    }
+
+    .second {
+      order: 3;
+      flex-basis: 100%;
+    }
+
+    .user-title {
+      order: 4;
+      flex-basis: 100%;
+    }
+    span {
+      margin-right: 4px;
+    }
+  }
 }
 
+.username.new-user a {
+  color: var(--primary-low-mid);
+}
 
 .user-title {
-  color: #aaa;
-  padding-top: 2px;
-  padding-left: 8px;
+  color: var(--primary-medium);
   overflow: hidden;
   margin-right: 50px;
 }
 
-span.btn-text {display: none;}
-
-blockquote {
-  clear:both;
-  margin: 0;
+.read-state {
+  display: none;
 }
 
-.quote-controls {
-  float: right;
-  color: $primary;
-  a {
-  margin: 0;
+.post-notice {
+  margin-bottom: 1em;
+  &.old {
+    border-top: none;
+    padding-top: 0;
   }
-    .back:before,
-    .quote-other-topic:before {
-    display: inline-block;
-    margin-left: 8px;
-    color: $primary;
-    font-family: "FontAwesome";
-    position: relative;
-    z-index: 20;
+}
+
+.posts-filtered-notice {
+  padding-right: 10em;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding-bottom: unquote("max(0.75em, env(safe-area-inset-bottom))");
+  margin: 1em -9px;
+
+  z-index: 101;
+  .filtered-replies-show-all {
+    position: absolute;
+    right: 2em;
+  }
+
+  .filtered-replies-viewing {
+    text-align: left;
+    width: 100%;
+  }
+
+  .filtered-avatar {
+    margin-left: 0;
+    img.avatar {
+      width: 20px;
+      height: 20px;
     }
-    .back:before {
-    content: "\f062";
-    }
-    .quote-other-topic:before {
-    content: "\f061";
-    }
-}
-
-
-.quote .title {
-  border-left: 5px solid scale-color($primary, $lightness: 75%);
-  background-color: scale-color($primary, $lightness: 95%);
-  padding: 10px 10px 10px 12px;
-  clear: both;
-  .avatar { margin-right: 7px; }
-}
-
-.gutter { display: none; }
-
-.posts-wrapper {  position: relative;
-}
-
-.topic-body.highlighted {
-  background-color: scale-color($tertiary, $lightness: 75%);
-}
-
-.topic-avatar {
-  width: 100%;
-  float: left;
-  position: relative;
-  z-index: 2;
-}
-
-.topic-meta-data {
-  float: left;
-  position: absolute;
-  z-index: 1;
-  width: 100%;
-   .names {margin: 5px 0 0 70px; float: left;}
-   .post-info {float: right; font-size: 12px; margin: 21px 10px 0 0;
-     .edits {margin-right: 5px;}
-   }
+  }
 }

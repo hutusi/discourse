@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CategoryCustomField < ActiveRecord::Base
   belongs_to :category
 end
@@ -10,8 +12,8 @@ end
 #  category_id :integer          not null
 #  name        :string(256)      not null
 #  value       :text
-#  created_at  :datetime
-#  updated_at  :datetime
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
 #
 # Indexes
 #

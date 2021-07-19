@@ -1,4 +1,6 @@
-class RemoveDescriptionFromSiteSettings < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class RemoveDescriptionFromSiteSettings < ActiveRecord::Migration[4.2]
   def up
     remove_column :site_settings, :description
   end

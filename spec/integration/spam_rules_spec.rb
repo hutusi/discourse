@@ -1,106 +1,122 @@
 # encoding: UTF-8
+# frozen_string_literal: true
 
-require 'spec_helper'
+require 'rails_helper'
 
-describe SpamRulesEnforcer do
+describe "spam rules for users" do
 
-  describe 'auto-blocking users based on flagging' do
+  describe 'auto-silence users based on flagging' do
+    fab!(:admin)     { Fabricate(:admin) } # needed to send a system message
+    fab!(:moderator) { Fabricate(:moderator) }
+    fab!(:user1)      { Fabricate(:user) }
+    fab!(:user2)      { Fabricate(:user) }
+
     before do
-      SiteSetting.stubs(:flags_required_to_hide_post).returns(0) # never
-      SiteSetting.stubs(:num_flags_to_block_new_user).returns(2)
-      SiteSetting.stubs(:num_users_to_block_new_user).returns(2)
+      SiteSetting.hide_post_sensitivity = Reviewable.sensitivity[:disabled]
+      Reviewable.set_priorities(high: 4.0)
+      SiteSetting.silence_new_user_sensitivity = Reviewable.sensitivity[:low]
+      SiteSetting.num_users_to_silence_new_user = 2
     end
 
-    Given!(:admin)     { Fabricate(:admin) } # needed to send a system message
-    Given!(:moderator) { Fabricate(:moderator) }
-    Given(:user1)      { Fabricate(:user) }
-    Given(:user2)      { Fabricate(:user) }
-
     context 'spammer is a new user' do
-      Given(:spammer)  { Fabricate(:user, trust_level: TrustLevel.levels[:newuser]) }
+      fab!(:spammer)  { Fabricate(:user, trust_level: TrustLevel[0]) }
 
       context 'spammer post is not flagged enough times' do
-        Given!(:spam_post)  { create_post(user: spammer) }
-        Given!(:spam_post2) { create_post(user: spammer) }
-        When                { PostAction.act(user1, spam_post, PostActionType.types[:spam]) }
-        Then                { expect(spam_post.reload).to_not be_hidden }
+        let!(:spam_post)  { create_post(user: spammer) }
+        let!(:spam_post2) { create_post(user: spammer) }
+
+        before do
+          PostActionCreator.create(user1, spam_post, :spam)
+        end
+
+        it 'should not hide the post' do
+          expect(spam_post.reload).to_not be_hidden
+        end
 
         context 'spam posts are flagged enough times, but not by enough users' do
-          When { PostAction.act(user1, spam_post2, PostActionType.types[:spam]) }
-          Then { expect(spam_post.reload).to_not be_hidden }
-          And  { expect(spam_post2.reload).to_not be_hidden }
-          And  { expect(spammer.reload).to_not be_blocked }
+          it 'should not hide the post' do
+            PostActionCreator.create(user1, spam_post2, :spam)
+
+            expect(spam_post.reload).to_not be_hidden
+            expect(spam_post2.reload).to_not be_hidden
+            expect(spammer.reload).to_not be_silenced
+          end
         end
 
         context 'one spam post is flagged enough times by enough users' do
-          Given!(:another_topic)          { Fabricate(:topic) }
-          Given!(:private_messages_count) { spammer.private_topics_count }
-          Given!(:mod_pm_count)           { moderator.private_topics_count }
+          fab!(:another_topic) { Fabricate(:topic) }
+          let!(:private_messages_count) { spammer.private_topics_count }
+          let!(:mod_pm_count) { moderator.private_topics_count }
+          let!(:reviewable) { PostActionCreator.spam(user2, spam_post).reviewable }
 
-          When { PostAction.act(user2, spam_post, PostActionType.types[:spam]) }
-
-          Invariant { expect(Guardian.new(spammer).can_create_topic?(nil)).to be_false }
-          Invariant { expect{PostCreator.create(spammer, {title: 'limited time offer for you', raw: 'better buy this stuff ok', archetype_id: 1})}.to raise_error(Discourse::InvalidAccess) }
-          Invariant { expect{PostCreator.create(spammer, {topic_id: another_topic.id, raw: 'my reply is spam in your topic', archetype_id: 1})}.to raise_error(Discourse::InvalidAccess) }
-
-          Then { expect(spammer.reload).to be_blocked }
-          And  { expect(spam_post.reload).to be_hidden }
-          And  { expect(spam_post2.reload).to be_hidden }
-          And  { expect(spammer.reload.private_topics_count).to eq(private_messages_count + 1) }
-
-
-          # The following cases describe when a staff user takes some action, but the user
-          # still won't be able to make posts.
-          # A staff user needs to clear the blocked flag from the user record.
-
-          context "a post's flags are cleared" do
-            When { PostAction.clear_flags!(spam_post, admin); spammer.reload }
-            Then { expect(spammer.reload).to be_blocked }
+          it 'should hide the posts' do
+            expect(Guardian.new(spammer).can_create_topic?(nil)).to be(false)
+            expect { PostCreator.create(spammer, title: 'limited time offer for you', raw: 'better buy this stuff ok', archetype_id: 1) }.to raise_error(Discourse::InvalidAccess)
+            expect(PostCreator.create(spammer, topic_id: another_topic.id, raw: 'my reply is spam in your topic', archetype_id: 1)).to eq(nil)
+            expect(spammer.reload).to be_silenced
+            expect(spam_post.reload).to be_hidden
+            expect(spam_post2.reload).to be_hidden
+            expect(spammer.reload.private_topics_count).to eq(private_messages_count + 1)
           end
 
           context "a post is deleted" do
-            When { spam_post.trash!(moderator); spammer.reload }
-            Then { expect(spammer.reload).to be_blocked }
+            it 'should silence the spammer' do
+              spam_post.trash!(moderator); spammer.reload
+              expect(spammer.reload).to be_silenced
+            end
           end
 
-          context "spammer becomes a basic user" do
-            When { spammer.change_trust_level!(:basic); spammer.reload }
-            Then { expect(spammer.reload).to be_blocked }
+          context "spammer becomes trust level 1" do
+            it 'should silence the spammer' do
+              spammer.change_trust_level!(TrustLevel[1]); spammer.reload
+              expect(spammer.reload).to be_silenced
+            end
           end
         end
 
-        context 'flags_required_to_hide_post takes effect too' do
-          Given { SiteSetting.stubs(:flags_required_to_hide_post).returns(2) }
-          When  { PostAction.act(user2, spam_post, PostActionType.types[:spam]) }
-          Then  { expect(spammer.reload).to be_blocked }
-          And   { expect(Guardian.new(spammer).can_create_topic?(nil)).to be_false }
+        context 'hide_post_sensitivity' do
+          it 'should silence the spammer' do
+            Reviewable.set_priorities(high: 2.0)
+            SiteSetting.hide_post_sensitivity = Reviewable.sensitivity[:low]
+            PostActionCreator.create(user2, spam_post, :spam)
+            expect(spammer.reload).to be_silenced
+            expect(Guardian.new(spammer).can_create_topic?(nil)).to be false
+          end
         end
       end
     end
 
     context "spammer has trust level basic" do
-      Given(:spammer)  { Fabricate(:user, trust_level: TrustLevel.levels[:basic]) }
+      let(:spammer)  { Fabricate(:user, trust_level: TrustLevel[1]) }
 
       context 'one spam post is flagged enough times by enough users' do
-        Given!(:spam_post)              { Fabricate(:post, user: spammer) }
-        Given!(:private_messages_count) { spammer.private_topics_count }
-        When { PostAction.act(user1, spam_post, PostActionType.types[:spam]) }
-        When { PostAction.act(user2, spam_post, PostActionType.types[:spam]) }
-        Then { expect(spam_post.reload).to_not be_hidden }
-        And  { expect(Guardian.new(spammer).can_create_topic?(nil)).to be_true }
-        And  { expect{PostCreator.create(spammer, {title: 'limited time offer for you', raw: 'better buy this stuff ok', archetype_id: 1})}.to_not raise_error }
-        And  { expect(spammer.reload.private_topics_count).to eq(private_messages_count) }
+        let!(:spam_post)              { Fabricate(:post, user: spammer) }
+        let!(:private_messages_count) { spammer.private_topics_count }
+
+        it 'should not allow spammer to create new posts' do
+          PostActionCreator.create(user1, spam_post, :spam)
+          PostActionCreator.create(user2, spam_post, :spam)
+
+          expect(spam_post.reload).to_not be_hidden
+          expect(Guardian.new(spammer).can_create_topic?(nil)).to be(true)
+          expect { PostCreator.create(spammer, title: 'limited time offer for you', raw: 'better buy this stuff ok', archetype_id: 1) }.to_not raise_error
+          expect(spammer.reload.private_topics_count).to eq(private_messages_count)
+        end
       end
     end
 
-    [[:user, trust_level: TrustLevel.levels[:regular]], [:admin], [:moderator]].each do |spammer_args|
+    [[:user, trust_level: TrustLevel[2]], [:admin], [:moderator]].each do |spammer_args|
       context "spammer is trusted #{spammer_args[0]}" do
-        Given!(:spammer)                { Fabricate(*spammer_args) }
-        Given!(:spam_post)              { Fabricate(:post, user: spammer) }
-        Given!(:private_messages_count) { spammer.private_topics_count }
-        When { PostAction.act(user1, spam_post, PostActionType.types[:spam]) }
-        When { PostAction.act(user2, spam_post, PostActionType.types[:spam]) }
-        Then { expect(spam_post.reload).to_not be_hidden }
+        let!(:spammer)                { Fabricate(*spammer_args) }
+        let!(:spam_post)              { Fabricate(:post, user: spammer) }
+        let!(:private_messages_count) { spammer.private_topics_count }
+
+        it 'should not hide the post' do
+          PostActionCreator.create(user1, spam_post, :spam)
+          PostActionCreator.create(user2, spam_post, :spam)
+
+          expect(spam_post.reload).to_not be_hidden
+        end
       end
     end
   end

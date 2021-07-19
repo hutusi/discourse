@@ -1,4 +1,6 @@
-class FixPostIndices < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class FixPostIndices < ActiveRecord::Migration[4.2]
   def up
     remove_index :posts, [:forum_thread_id, :created_at]
     add_index :posts, [:forum_thread_id, :post_number]

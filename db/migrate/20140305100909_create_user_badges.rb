@@ -1,4 +1,6 @@
-class CreateUserBadges < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateUserBadges < ActiveRecord::Migration[4.2]
   def change
     create_table :user_badges do |t|
       t.integer :badge_id, null: false

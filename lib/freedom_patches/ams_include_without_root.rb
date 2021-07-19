@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Just ignore included associations that are to be embedded in the root instead of
 # throwing an exception in AMS 0.8.x.
 #
@@ -8,7 +10,7 @@ module ActiveModel
     # This method is copied over verbatim from the AMS version, except for silently
     # ignoring associations that cannot be embedded without a root instead of
     # raising an exception.
-    def include!(name, options={})
+    def include!(name, options = {})
       unique_values =
         if hash = options[:hash]
           if @options[:hash] == hash

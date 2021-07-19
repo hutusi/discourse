@@ -1,4 +1,6 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 require 'cache'
 
 describe Cache do
@@ -7,55 +9,68 @@ describe Cache do
     Cache.new
   end
 
+  it "supports exist?" do
+    cache.write("testing", 1.1)
+    expect(cache.exist?("testing")).to eq(true)
+    expect(cache.exist?(SecureRandom.hex)).to eq(false)
+  end
+
+  it "supports float" do
+    cache.write("float", 1.1)
+    expect(cache.read("float")).to eq(1.1)
+  end
+
   it "supports fixnum" do
     cache.write("num", 1)
-    cache.read("num").should == 1
+    expect(cache.read("num")).to eq(1)
   end
 
   it "supports hash" do
-    hash = {a: 1, b: [1,2,3]}
+    hash = { a: 1, b: [1, 2, 3] }
     cache.write("hash", hash)
-    cache.read("hash").should == hash
+    expect(cache.read("hash")).to eq(hash)
   end
 
   it "can be cleared" do
+    Discourse.redis.set("boo", "boo")
     cache.write("hello0", "world")
     cache.write("hello1", "world")
     cache.clear
 
-    cache.read("hello0").should be_nil
-  end
-
-  it "can delete by family" do
-    cache.write("key2", "test", family: "my_family")
-    cache.write("key", "test", expires_in: 1.minute, family: "my_family")
-
-    cache.delete_by_family("my_family")
-
-    cache.fetch("key").should be_nil
-    cache.fetch("key2").should be_nil
-
+    expect(Discourse.redis.get("boo")).to eq("boo")
+    expect(cache.read("hello0")).to eq(nil)
   end
 
   it "can delete correctly" do
+    cache.delete("key")
+
     cache.fetch("key", expires_in: 1.minute) do
       "test"
     end
 
+    expect(cache.fetch("key")).to eq("test")
+
     cache.delete("key")
-    cache.fetch("key").should be_nil
+    expect(cache.fetch("key")).to eq(nil)
   end
 
-  #TODO yuck on this mock
   it "calls setex in redis" do
     cache.delete("key")
+    cache.delete("bla")
 
-    key = cache.namespaced_key("key")
-    $redis.expects(:setex).with(key, 60 , Marshal.dump("bob"))
+    key = cache.normalize_key("key")
 
     cache.fetch("key", expires_in: 1.minute) do
       "bob"
     end
+
+    expect(Discourse.redis.ttl(key)).to be_within(2.seconds).of(1.minute)
+
+    # we always expire withing a day
+    cache.fetch("bla") { "hi" }
+
+    key = cache.normalize_key("bla")
+    expect(Discourse.redis.ttl(key)).to be_within(2.seconds).of(1.day)
   end
 
   it "can store and fetch correctly" do
@@ -64,7 +79,8 @@ describe Cache do
     r = cache.fetch "key" do
       "bob"
     end
-    r.should == "bob"
+
+    expect(r).to eq("bob")
   end
 
   it "can fetch existing correctly" do
@@ -73,6 +89,23 @@ describe Cache do
     r = cache.fetch "key" do
       "bob"
     end
-    r.should == "bill"
+    expect(r).to eq("bill")
+  end
+
+  it "can fetch keys with pattern" do
+    cache.write "users:admins", "jeff"
+    cache.write "users:moderators", "bob"
+
+    expect(cache.keys("users:*").count).to eq(2)
+  end
+
+  it "can fetch namespace" do
+    expect(cache.namespace).to eq("_CACHE")
+  end
+
+  it "uses the defined expires_in" do
+    cache.write "foo:bar", "baz", expires_in: 3.minutes
+
+    expect(cache.redis.ttl("#{cache.namespace}:foo:bar")).to eq(180)
   end
 end

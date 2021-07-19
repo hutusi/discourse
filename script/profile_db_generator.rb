@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # can be used to generate a mock db for profiling purposes
 
 # we want our script to generate a consistent output, to do so
@@ -9,7 +11,6 @@ class Array
     self[RNG.rand(size)]
   end
 end
-
 
 # based on https://gist.github.com/zaius/2643079
 def unbundled_require(gem)
@@ -34,7 +35,7 @@ def sentence
     gabbler.learn(story)
   end
 
-  sentence = ""
+  sentence = +""
   until sentence.length > 800 do
     sentence << @gabbler.sentence
     sentence << "\n"
@@ -44,28 +45,39 @@ end
 
 def create_admin(seq)
   User.new.tap { |admin|
-    admin.email = "admin@localhost#{seq}"
+    admin.email = "admin@localhost#{seq}.fake"
     admin.username = "admin#{seq}"
-    admin.password = "password"
-    admin.save
+    admin.password = "password12345abc"
+    admin.save!
     admin.grant_admin!
-    admin.change_trust_level!(:regular)
-    admin.email_tokens.update_all(confirmed: true)
+    admin.change_trust_level!(TrustLevel[4])
+    admin.activate
   }
 end
 
 require File.expand_path(File.dirname(__FILE__) + "/../config/environment")
 
-SiteSetting.queue_jobs = false
+Jobs.run_immediately!
 
 unless Rails.env == "profile"
   puts "This script should only be used in the profile environment"
   exit
 end
 
-# by default, Discourse has a "system" account
-if User.count > 1
+def ensure_perf_test_topic_has_right_title!
+  title = "I am a topic used for perf tests"
+  # in case we have an old run and picked the wrong topic
+  Topic.where(title: title).update_all(title: "Test topic #{SecureRandom.hex}")
+  t = Topic.where(archetype: :regular, posts_count: 30).order(id: :desc).first
+  t.title = title
+  t.save!
+end
+
+# by default, Discourse has a "system" and `discobot` account
+if User.count > 2
   puts "Only run this script against an empty DB"
+
+  ensure_perf_test_topic_has_right_title!
   exit
 end
 
@@ -95,9 +107,10 @@ puts
 puts "Creating 100 topics"
 
 topic_ids = 100.times.map do
-  topic = PostCreator.create(users.sample, raw: sentence, title: sentence[0..50].strip, category:  categories.sample.name, skip_validations: true)
+  post = PostCreator.create(users.sample, raw: sentence, title: sentence[0..50].strip, category:  categories.sample.id, skip_validations: true)
+
   putc "."
-  topic.id
+  post.topic_id
 end
 
 puts
@@ -111,3 +124,4 @@ end
 Category.update_stats
 Jobs::PeriodicalUpdates.new.execute(nil)
 
+ensure_perf_test_topic_has_right_title!

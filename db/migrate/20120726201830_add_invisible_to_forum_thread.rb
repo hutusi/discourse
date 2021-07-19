@@ -1,4 +1,6 @@
-class AddInvisibleToForumThread < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddInvisibleToForumThread < ActiveRecord::Migration[4.2]
   def up
     add_column :forum_threads, :invisible, :boolean, default: false, null: false
     change_column :categories, :excerpt, :text, null: true

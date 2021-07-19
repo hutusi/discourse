@@ -1,4 +1,6 @@
-class AddPreviewToOneboxRenders < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddPreviewToOneboxRenders < ActiveRecord::Migration[4.2]
   def change
     add_column :onebox_renders, :preview, :text, null: true
 

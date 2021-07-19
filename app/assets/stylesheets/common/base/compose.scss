@@ -1,29 +1,409 @@
+#reply-control {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  bottom: 0;
+  height: 0;
+  right: 0;
+  left: 0;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: $reply-area-max-width;
+  width: 100%;
+  &.hide-preview {
+    max-width: 740px;
+  }
+  @media screen and (max-width: 1200px) {
+    min-width: 0;
+  }
+  z-index: z("composer", "content");
+  transition: height 250ms ease, background 250ms ease, transform 250ms ease,
+    max-width 250ms ease, padding-bottom 250ms ease;
+  background-color: var(--secondary);
+  box-shadow: shadow("composer");
+
+  .reply-area {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .saving-text,
+  .draft-text {
+    display: none;
+    padding-left: 10px;
+    .spinner {
+      margin-left: 5px;
+      border-color: var(--secondary);
+      border-right-color: transparent;
+    }
+    .d-icon {
+      color: var(--secondary);
+    }
+  }
+
+  &.open {
+    height: 300px;
+    &.edit-title {
+      height: 400px; // more room when editing the title
+    }
+  }
+
+  &.closed {
+    height: 0 !important;
+  }
+
+  &.draft,
+  &.saving {
+    height: 40px !important;
+    align-items: center;
+    background: var(--tertiary);
+    color: var(--secondary);
+    flex-direction: row;
+    width: 100%;
+    .composer-controls {
+      margin-left: auto;
+      display: flex;
+      padding-right: 5px;
+      .toggle-toolbar {
+        display: none;
+      }
+      .d-icon {
+        color: var(--secondary);
+      }
+    }
+  }
+
+  &.draft {
+    cursor: pointer;
+    display: flex;
+    .draft-text {
+      display: block;
+    }
+    .grippie,
+    .saving-text {
+      display: none;
+    }
+    .toggle-minimize {
+      order: 2;
+    }
+  }
+
+  &.saving .saving-text {
+    display: flex;
+  }
+
+  .reply-to {
+    color: var(--primary-high);
+    margin: 5px 0 10px 0;
+    display: flex;
+    align-items: center;
+
+    .reply-details {
+      max-width: calc(100% - 175px);
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+
+      .d-icon {
+        color: var(--primary-medium);
+      }
+    }
+    .composer-action-title {
+      display: inline-flex;
+      align-items: center;
+      width: auto;
+      max-width: 100%;
+
+      .avatar {
+        width: 20px;
+      }
+
+      .action-title {
+        line-height: normal;
+        @include ellipsis;
+      }
+
+      .topic-link,
+      .user-link,
+      .post-link {
+        margin-right: 5px;
+      }
+
+      .username {
+        margin-right: 5px;
+        max-width: 100px;
+        @include ellipsis;
+        @media screen and (max-width: 500px) {
+          display: none;
+        }
+      }
+
+      .d-icon {
+        margin-right: 5px;
+      }
+
+      img.avatar {
+        margin-right: 3px;
+      }
+    }
+    .composer-controls {
+      display: flex;
+      margin-left: auto;
+      .toggle-minimize {
+        order: 2;
+      }
+    }
+  }
+
+  .whisper,
+  .display-edit-reason {
+    font-style: italic;
+  }
+
+  .whisper {
+    margin: 0 0.25em;
+  }
+
+  .unlist {
+    margin-left: 0.25em;
+  }
+
+  .display-edit-reason {
+    display: inline-flex;
+    a {
+      display: inline-flex;
+    }
+    .d-icon {
+      padding: 0.3em 0.5em;
+      color: var(--tertiary);
+    }
+  }
+
+  #edit-reason {
+    margin: 0 4px;
+  }
+
+  .user-selector,
+  .title-and-category {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    margin-bottom: 5px;
+    position: relative;
+    &.with-preview {
+      width: 50%;
+    }
+  }
+
+  .title-input {
+    position: relative;
+    display: flex;
+    flex: 1 1 50%;
+
+    input {
+      flex-grow: 1;
+    }
+  }
+
+  .with-tags {
+    .title-input {
+      flex: 1 1 100%;
+    }
+
+    .archetype-private_message & {
+      // PMs don's have categories, so we need a wider tag input
+      .mini-tag-chooser {
+        width: 100%;
+      }
+    }
+  }
+
+  .category-input {
+    display: flex;
+    flex: 1 0 40%;
+    max-width: 40%;
+    margin: 0 0 5px 10px;
+    @media screen and (max-width: 955px) {
+      flex: 1 0 100%;
+      margin-left: 0;
+    }
+    .category-chooser {
+      display: flex;
+      flex: 1 0 auto;
+      max-width: 100%;
+      width: auto;
+      .select-kit-header {
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      // below needed for text-overflow: ellipsis;
+      .selected-name {
+        max-width: 100%;
+        overflow: hidden;
+        .name {
+          max-width: 100%;
+          overflow: hidden;
+          display: flex;
+          .badge-wrapper {
+            overflow: hidden;
+          }
+          // This prevents the first category from being too-truncated at the expense of a long subcategory
+          .badge-wrapper:first-of-type:not(:last-of-type) {
+            flex: 1 0 auto;
+            max-width: 50%;
+          }
+        }
+      }
+    }
+  }
+
+  .with-tags {
+    .title-and-category {
+      flex-wrap: wrap;
+    }
+    .category-input {
+      margin-left: 0;
+      min-width: 0; // allows flex to shrink
+      flex-wrap: wrap;
+      max-width: 50%;
+      @media screen and (max-width: 920px) {
+        flex-basis: 100%;
+        margin-right: 0;
+      }
+    }
+  }
+
+  .add-warning {
+    margin-left: 0.75em;
+    margin-bottom: 0;
+    display: flex;
+    input {
+      margin-right: 5px;
+    }
+  }
+
+  #reply-title {
+    margin: 0 0 5px 0;
+    flex-basis: 50%;
+    width: unset;
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  .mini-tag-chooser {
+    width: 49%;
+    margin: 0 0 5px auto;
+    background: var(--secondary);
+    z-index: z("composer", "dropdown");
+  }
+
+  .popup-tip {
+    z-index: z("composer", "dropdown") + 1;
+  }
+
+  .wmd-controls {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+  }
+
+  .submit-panel {
+    display: flex;
+    flex-shrink: 0;
+    margin: 7px 0 3px 0;
+  }
+
+  .save-or-cancel {
+    flex-basis: 50%;
+    display: flex;
+    align-items: center;
+    margin-right: auto;
+    button {
+      flex: 0 0 auto;
+    }
+    .cancel {
+      margin-left: 1.25em;
+      line-height: normal;
+      color: var(--primary-high);
+      transition: color 250ms;
+      &:hover,
+      &:focus {
+        outline: none;
+        color: var(--danger);
+      }
+    }
+    #draft-status,
+    #file-uploading {
+      margin-left: 25px;
+    }
+    #file-uploading {
+      display: flex;
+      align-items: center;
+      a {
+        margin-left: 5px;
+        color: var(--primary-high);
+      }
+      .spinner {
+        margin-right: 5px;
+      }
+    }
+    #draft-status .d-icon-user-edit {
+      color: var(--danger);
+      font-size: 20px;
+      vertical-align: -5.5px;
+    }
+  }
+
+  #draft-status,
+  #file-uploading {
+    color: var(--primary-high);
+  }
+
+  #file-uploader {
+    display: none;
+  }
+}
+
 .autocomplete {
-  z-index: 999999;
+  z-index: z("composer", "dropdown") + 1;
   position: absolute;
   width: 240px;
-  background-color: $secondary;
-  border: 1px solid scale-color($primary, $lightness: 90%);
+  background-color: var(--secondary);
+  border: 1px solid var(--primary-low);
   ul {
     list-style: none;
     padding: 0;
     margin: 0;
+
     li {
-      border-bottom: 1px solid scale-color($primary, $lightness: 90%);
-      a[href] {
+      .d-icon-users {
+        color: var(--primary-medium);
+        padding: 0 2px;
+      }
+
+      border-bottom: 1px solid var(--primary-low);
+
+      a {
         padding: 5px;
         display: block;
+        @include ellipsis;
+
         span.username {
-          color: darken($primary, 40%);
+          color: var(--primary);
         }
         span.name {
-          font-size: 11px;
+          font-size: $font-down-1;
+          vertical-align: middle;
         }
         &.selected {
-          background-color: scale-color($primary, $lightness: 90%);
+          background-color: var(--tertiary-low);
         }
         @include hover {
-          background-color: scale-color($primary, $lightness: 90%);
+          background-color: var(--highlight-low);
           text-decoration: none;
         }
       }
@@ -33,82 +413,129 @@
 
 div.ac-wrap.disabled {
   input {
-    display:none;
+    display: none;
   }
   .item a {
-    display:none;
+    display: none;
   }
 }
 
+div.ac-wrap div.item a.remove,
+.remove-link {
+  margin-left: 4px;
+  font-size: $font-down-1;
+  line-height: $line-height-small;
+  padding: 1px 3.5px;
+  border-radius: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--primary-low);
+  &:hover {
+    background-color: var(--danger-low);
+    border: 1px solid var(--danger-medium);
+    text-decoration: none;
+    color: var(--danger);
+  }
+}
 
 div.ac-wrap {
-  background-color: $secondary;
-  border: 1px solid scale-color($primary, $lightness: 90%);
-  padding: 5px 10px;
+  max-height: 150px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 30px;
+  box-sizing: border-box;
   div.item {
     float: left;
-    margin-right: 10px;
-    margin-bottom: 5px;
+    padding: 4px 10px;
+    line-height: $line-height-large;
     span {
-      padding-left: 5px;
-      height: 22px;
       display: inline-block;
-      line-height: 22px;
-      vertical-align: bottom;
-    }
-    a.remove {
-      margin-left: 4px;
-      font-size: 10px;
-      line-height: 10px;
-      padding: 2px 1px 1px 3px;
-      border-radius: 10px;
-      width: 10px;
-      display: inline-block;
-      border: 1px solid scale-color($primary, $lightness: 90%);
-      &:hover {
-        background-color: scale-color($danger, $lightness: 75%);
-        border: 1px solid scale-color($danger, $lightness: 30%);
-        text-decoration: none;
-        color: $danger;
-      }
+      line-height: $line-height-medium;
     }
   }
+
+  .ac-collapsed-button {
+    float: left;
+    border-radius: 20px;
+    position: relative;
+    top: -2px;
+    margin-right: 10px;
+  }
+
   input[type="text"] {
     float: left;
-    margin-top: 5px;
-    border: 0;
-    padding: 0;
-    margin: 4px 0 0;
-    box-shadow: none;
+    &.fullwidth-input {
+      width: 100%;
+    }
   }
 }
 
-#reply-control.topic #wmd-quote-post {
-  display: none;
-}
-
-
-.auto-close-fields {
-  input {
-    width: 150px;
-  }
+.future-date-input {
   .examples {
-    margin: 10px 0 0 0;
-    color: $primary;
+    color: var(--primary-medium);
   }
 }
 
-.edit-auto-close-modal {
-  form {
-    margin: 0;
+.md-table {
+  overflow-y: auto;
+  margin: 1em 0;
+  .mobile-view & {
+    table {
+      width: 100%;
+    }
   }
-  .auto-close-fields {
-    i.fa-clock-o {
-      font-size: 16px;
-      line-height: 8px;
+}
+
+@-webkit-keyframes transformer {
+  90% {
+    -webkit-filter: opacity(1);
+  }
+  100% {
+    -webkit-filter: opacity(0);
+  }
+}
+@keyframes transformer {
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+body.ios-safari-composer-hacks {
+  #main-outlet,
+  header,
+  .grippie,
+  html:not(.fullscreen-composer) & .toggle-fullscreen {
+    display: none;
+  }
+
+  #reply-control {
+    top: 0px;
+    &.open {
+      height: calc(var(--composer-vh, 1vh) * 100);
     }
-    input {
-      margin: 0;
+  }
+}
+
+body:not(.ios-safari-composer-hacks) {
+  #reply-control.open {
+    padding-bottom: var(--composer-ipad-padding);
+  }
+}
+
+.show-preview {
+  @media screen and (max-width: 850px) {
+    .d-editor-button-bar {
+      font-size: $font-down-1;
     }
+  }
+}
+
+.toggle-preview {
+  transition: all 0.33s ease-out;
+  &.active {
+    transform: rotate(180deg);
   }
 }

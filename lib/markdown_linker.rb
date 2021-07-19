@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Helps create links using markdown (where references are at the bottom)
 class MarkdownLinker
 
@@ -9,15 +11,15 @@ class MarkdownLinker
   end
 
   def create(title, url)
-    @markdown_links[@index] = "#{@base_url}#{url}"
+    @markdown_links[@index] = url.start_with?(@base_url) ? url : "#{@base_url}#{url}"
     result = "[#{title}][#{@index}]"
     @index += 1
     result
   end
 
   def references
-    result = ""
-    (@rendered..@index-1).each do |i|
+    result = +""
+    (@rendered..@index - 1).each do |i|
       result << "[#{i}]: #{@markdown_links[i]}\n"
     end
     @rendered = @index

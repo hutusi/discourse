@@ -2,238 +2,209 @@
   @include unselectable;
   clear: both;
   text-align: right;
+  margin-bottom: 10px;
   .post-action {
     display: inline-block;
     margin-left: 10px;
     margin-top: 10px;
   }
 }
-.post-menu-area {
-  margin-bottom: 10px;
-  margin-top: 20px;
-}
 
-.edits {margin-right: 5px;}
+.post-menu-area {
+  margin: 20px 0;
+}
 
 #topic-title {
-  z-index: 1000;
-  padding: 14px 0 8px 0;
-  margin-bottom: 20px;
-  .star {
-    font-size: 20px;
-    margin-top: 6px;
-    margin-right: 6px;
-  }
-  #edit-title { width: 500px; }
-  .category-combobox {
-    width: 250px;
-    .chzn-drop {
-      left: -9000px;
-      width: 248px;
-    }
-    .chzn-search input {
-      width: 198px;
-    }
+  z-index: z("base");
+  margin-bottom: 1em;
+
+  #edit-title,
+  .category-chooser,
+  .edit-controls {
+    width: 500px;
   }
   h1 {
-    font-size: 1.8em;
-    margin: 0;
-    line-height: 1.2em;
-    overflow: hidden;
-    a {color: $primary;}
-    a.badge-category { vertical-align: top; margin-top: 4px; }
-    a.edit-topic { font-size: 15px; position: absolute; margin-left: 8px; }
+    font-size: $font-up-4;
+    line-height: $line-height-medium;
+    overflow-wrap: break-word;
+    width: 100%;
+    a {
+      color: var(--primary);
+    }
   }
-  .topic-statuses {
-    margin-top: -2px;
-    .fa-thumb-tack { padding-left: 3px;
- }
 
+  .remove-featured-link {
+    float: right;
+    text-transform: lowercase;
+    color: var(--primary-med-or-secondary-med);
+    font-size: 0.857rem;
   }
-  .chzn-container { vertical-align: middle; }
-  .private-message-glyph { display: none; }
 }
 
-.private-message-glyph { color: scale-color($primary, $lightness: 75%); }
-.private_message #topic-title .private-message-glyph { display: inline; }
+.topic-error {
+  padding: 18px;
+  width: 60%;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: $font-up-4;
+  text-align: center;
+  line-height: $line-height-medium;
 
-#topic-closing-info {
-  border-top: 1px solid scale-color($primary, $lightness: 90%);
-  padding-top: 10px;
-  height: 20px;
+  .topic-retry {
+    display: block;
+    margin-top: 28px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 #topic-progress-wrapper {
   position: fixed;
-  right: 50%;
-  width: 0;
   bottom: 0;
-  z-index: 500;
-  outline: 1px solid transparent;
-}
-
-.reply-new {
-  i {
-    font-size: 12px;
-    margin-right: 5px;
-    background: $secondary;
-    border: 1px solid scale-color($primary, $lightness: 90%);
-    padding: 2px 4px;
-    border-radius: 20px;
-    transition: linear 0.15s;
-    -webkit-transition: linear 0.15s;
+  left: 0;
+  margin: 0 auto;
+  max-width: $reply-area-max-width;
+  display: flex;
+  justify-content: flex-end;
+  z-index: z("timeline");
+  // max-width + bottom + left/right makes this element take up the whole width
+  // albeit as a transparent row, but we disable pointer-events to allow user to
+  // interact with visible elements at bottom of viewport
+  pointer-events: none;
+  > * {
+    // and then we reset for its children
+    pointer-events: auto;
+  }
+  &.docked {
+    position: absolute;
+    bottom: -70px;
+  }
+  html.rtl & {
+    justify-content: flex-start;
+    right: 0;
+    left: 2em;
   }
 }
 
-a.reply-new {
-  position: absolute;
-  color: scale-color($primary, $lightness: 50%);
-  margin-top: -2px;}
-a:hover.reply-new {
-  color: $tertiary;
-  i {background: scale-color($tertiary, $lightness: 75%);
-    border: 1px solid $tertiary;
-    padding: 2px 4px;
+#topic-progress-expanded {
+  border: 1px solid var(--primary-low);
+  padding: 5px;
+  background: var(--secondary);
+
+  position: relative;
+  left: 340px;
+  width: 135px;
+
+  button.full {
+    width: 100%;
+    margin-bottom: 5px;
+    .d-icon {
+      display: block;
+      margin-top: 2px;
+      margin-bottom: 2px;
+      font-size: $font-up-2;
+    }
+  }
+  .jump-form {
+    input[type="text"] {
+      float: left;
+      width: 45px;
+      height: 20px;
+      text-align: center;
+      margin-bottom: 0;
+      font-size: $font-up-1;
+    }
+    button.btn {
+      float: right;
+      width: 55px;
+    }
+  }
+  button.btn.jump-prompt {
+    margin: 0;
+  }
+
+  button.btn.jump-bottom {
+    margin: 5px 0 0 0;
   }
 }
 
 #topic-progress {
   position: relative;
-  left: 345px;
+  left: 340px;
   &.hidden {
     display: none;
   }
-  border: none;
-  background-color: scale-color($primary, $lightness: 90%);
-  color: scale-color($primary, $lightness: 50%);
-  width: 130px;
+  background-color: var(--secondary);
+  color: var(--tertiary);
+  border: 1px solid var(--tertiary-low);
+  border-bottom: none;
+  width: 145px;
   height: 34px;
 
+  /* as a big ol' click target, don't let text inside be selected */
+  @include unselectable;
+
+  &:hover {
+    cursor: pointer;
+  }
   .nums {
     position: relative;
     top: 9px;
     width: 100%;
     text-align: center;
-    z-index: 1;
+    z-index: z("base");
   }
-  button {
-    padding: 3px 1px 0 0;
-    cursor: pointer;
-    z-index: 1000;
+  .d-icon {
     position: absolute;
-    top: 2px;
-    left: 4px;
-    border: 0;
-    background: none;
-    color: scale-color($primary, $lightness: 50%);
-    width: 50%;
-    text-align: left;
-    height: 30px;
-    margin: 0;
-    i {
-      font-size: 18px;
-    }
-    &:nth-of-type(2) {
-      right: 4px;
-      left: auto;
-      text-align: right;
-    }
-    &:disabled {
-    cursor: default;
-    color: scale-color($primary, $lightness: 50%);
-    }
+    right: 8px;
+    bottom: 9px;
+    z-index: z("base");
   }
   h4 {
     display: inline;
-    font-size: 18px;
-    line-height: 15px;
+    font-size: $font-up-2;
+    line-height: $line-height-small;
   }
   .bg {
     position: absolute;
     top: 0;
     bottom: 0;
     width: 0;
-    border-right: 1px solid  scale-color($primary, $lightness: 90%);
-    background-color:  scale-color($success, $lightness: 70%);
-    transition: width .75s;
+    max-width: 145px;
+    border-right: 1px solid var(--tertiary-low);
+    background-color: var(--tertiary-low);
+    transition: width 0.75s;
   }
 }
-
-#topic-progress-wrapper.docked {
-  position: absolute;
-  bottom: -70px;
-
-}
-
-#suggested-topics .topic-statuses .topic-status {
-  padding: 0;
-  i {
-    font-size:15px;
-  }
-}
-
-.heatmap-high {color: scale-color($danger, $lightness: 20%) !important;}
-.heatmap-med {color: $danger !important;}
-.heatmap-low {color: scale-color($danger, $lightness: -20%) !important;}
-
-
 
 #topic-filter {
-  background-color: scale-color($highlight, $lightness: 25%);
+  background-color: var(--highlight-medium);
   padding: 8px;
   bottom: 0;
   position: fixed;
   width: 100%;
-  font-size: 15px;
-  z-index: 495
+  font-size: $font-0;
+  z-index: z("dropdown");
 }
 
-/* Code, KBD, Sub/sup formatting */
-
-code,kbd,pre,samp{
-  font-family:monospace, serif; font-size:1em;
+#topic-progress,
+#topic-progress-expanded {
+  right: 0;
+  left: 0;
 }
-pre {
-  code {
-  white-space:pre-wrap;
-  display: block;
-  padding: 5px 10px;
-  color: $primary;
-  background: scale-color($primary, $lightness: 90%);
-  max-height: 500px;
+
+@media all and (min-width: 400px) {
+  #topic-footer-main-buttons {
+    max-width: 70%;
   }
 }
-q{ quotes:"\201C" "\201D" "\2018" "\2019"; }
-small{ font-size:80%; }
-sub,sup{
-  font-size:75%;
-  line-height:0;
-  position:relative;
-  vertical-align:baseline;
-}
-sup{top:-0.5em; }
-sub{bottom:-0.25em; }
-figure{margin:0; }
-fieldset{
-  border:1px solid scale-color($primary, $lightness: 90%);
-  margin:0 2px;
-  padding:0.35em 0.625em 0.75em;
-}
-legend{
-  border:0;
-  padding:0;
-}
 
-kbd
-{
-    background-color: $secondary;
-    border:1px solid scale-color($primary, $lightness: 90%);
-    border-radius: 3px;
-    box-shadow: 0 1px 0 rgba($primary, .9);
-    color: $primary;
-    display: inline-block;
-    font-size: 12px;
-    line-height: 1.4;
-    margin: 0 .1em;
-    padding: .1em .6em;
+@media all and (max-width: 485px) {
+  #topic-progress-wrapper.docked {
+    display: none;
+  }
+
+  #topic-footer-main-buttons {
+    max-width: 100%;
+  }
 }

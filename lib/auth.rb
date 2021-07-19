@@ -1,8 +1,13 @@
+# frozen_string_literal: true
+
 module Auth; end
 
-require_dependency 'auth/result'
-require_dependency 'auth/authenticator'
-require_dependency 'auth/facebook_authenticator'
-require_dependency 'auth/open_id_authenticator'
-require_dependency 'auth/github_authenticator'
-require_dependency 'auth/twitter_authenticator'
+require 'auth/auth_provider'
+require 'auth/result'
+require 'auth/authenticator'
+require 'auth/managed_authenticator'
+require 'auth/facebook_authenticator'
+require 'auth/github_authenticator'
+require 'auth/twitter_authenticator'
+require 'auth/google_oauth2_authenticator'
+require 'auth/discord_authenticator'

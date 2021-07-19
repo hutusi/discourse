@@ -1,49 +1,49 @@
+# frozen_string_literal: true
+
 class ListController < ApplicationController
+  include TopicListResponder
+  include TopicQueryParams
 
-  skip_before_filter :check_xhr
+  skip_before_action :check_xhr
 
-  @@categories = [
+  before_action :set_category, only: [
+    :category_default,
     # filtered topics lists
-    Discourse.filters.map { |f| "category_#{f}".to_sym },
-    Discourse.filters.map { |f| "category_none_#{f}".to_sym },
-    Discourse.filters.map { |f| "parent_category_category_#{f}".to_sym },
-    Discourse.filters.map { |f| "parent_category_category_none_#{f}".to_sym },
+    Discourse.filters.map { |f| :"category_#{f}" },
+    Discourse.filters.map { |f| :"category_none_#{f}" },
     # top summaries
     :category_top,
     :category_none_top,
-    :parent_category_category_top,
     # top pages (ie. with a period)
-    TopTopic.periods.map { |p| "category_top_#{p}".to_sym },
-    TopTopic.periods.map { |p| "category_none_top_#{p}".to_sym },
-    TopTopic.periods.map { |p| "parent_category_category_top_#{p}".to_sym },
+    TopTopic.periods.map { |p| :"category_top_#{p}" },
+    TopTopic.periods.map { |p| :"category_none_top_#{p}" },
     # category feeds
     :category_feed,
   ].flatten
 
-  before_filter :set_category, only: @@categories
-
-  before_filter :ensure_logged_in, except: [
+  before_action :ensure_logged_in, except: [
     :topics_by,
     # anonymous filters
     Discourse.anonymous_filters,
-    Discourse.anonymous_filters.map { |f| "#{f}_feed".to_sym },
+    Discourse.anonymous_filters.map { |f| "#{f}_feed" },
     # anonymous categorized filters
-    Discourse.anonymous_filters.map { |f| "category_#{f}".to_sym },
-    Discourse.anonymous_filters.map { |f| "category_none_#{f}".to_sym },
-    Discourse.anonymous_filters.map { |f| "parent_category_category_#{f}".to_sym },
-    Discourse.anonymous_filters.map { |f| "parent_category_category_none_#{f}".to_sym },
+    :category_default,
+    Discourse.anonymous_filters.map { |f| :"category_#{f}" },
+    Discourse.anonymous_filters.map { |f| :"category_none_#{f}" },
     # category feeds
     :category_feed,
+    # user topics feed
+    :user_topics_feed,
     # top summaries
     :top,
     :category_top,
     :category_none_top,
-    :parent_category_category_top,
     # top pages (ie. with a period)
-    TopTopic.periods.map { |p| "top_#{p}".to_sym },
-    TopTopic.periods.map { |p| "category_top_#{p}".to_sym },
-    TopTopic.periods.map { |p| "category_none_top_#{p}".to_sym },
-    TopTopic.periods.map { |p| "parent_category_category_top_#{p}".to_sym },
+    TopTopic.periods.map { |p| :"top_#{p}" },
+    TopTopic.periods.map { |p| :"top_#{p}_feed" },
+    TopTopic.periods.map { |p| :"category_top_#{p}" },
+    TopTopic.periods.map { |p| :"category_none_top_#{p}" },
+    :group_topics
   ].flatten
 
   # Create our filters
@@ -52,121 +52,220 @@ class ListController < ApplicationController
       list_opts = build_topic_list_options
       list_opts.merge!(options) if options
       user = list_target_user
-
-      if filter == :latest && params[:category].blank?
+      if params[:category].blank? && filter == :latest && !SiteSetting.show_category_definitions_in_topic_lists
         list_opts[:no_definitions] = true
       end
 
       list = TopicQuery.new(user, list_opts).public_send("list_#{filter}")
-      list.more_topics_url = construct_next_url_with(list_opts)
-      list.prev_topics_url = construct_prev_url_with(list_opts)
+
+      if guardian.can_create_shared_draft? && @category.present?
+        if @category.id == SiteSetting.shared_drafts_category.to_i
+          # On shared drafts, show the destination category
+          list.topics.each do |t|
+            t.includes_destination_category = t.shared_draft.present?
+          end
+        else
+          # When viewing a non-shared draft category, find topics whose
+          # destination are this category
+          shared_drafts = TopicQuery.new(
+            user,
+            category: SiteSetting.shared_drafts_category,
+            destination_category_id: list_opts[:category]
+          ).list_latest
+
+          if shared_drafts.present? && shared_drafts.topics.present?
+            list.shared_drafts = shared_drafts.topics
+          end
+        end
+      end
+
+      list.more_topics_url = construct_url_with(:next, list_opts)
+      list.prev_topics_url = construct_url_with(:prev, list_opts)
       if Discourse.anonymous_filters.include?(filter)
         @description = SiteSetting.site_description
         @rss = filter
+        @rss_description = filter
+
+        # Note the first is the default and we don't add a title
+        if (filter.to_s != current_homepage) && use_crawler_layout?
+          filter_title = I18n.t("js.filters.#{filter.to_s}.title", count: 0)
+          if list_opts[:category] && @category
+            @title = I18n.t('js.filters.with_category', filter: filter_title, category: @category.name)
+          else
+            @title = I18n.t('js.filters.with_topics', filter: filter_title)
+          end
+          @title << " - #{SiteSetting.title}"
+        elsif @category.blank? && (filter.to_s == current_homepage) && SiteSetting.short_site_description.present?
+          @title = "#{SiteSetting.title} - #{SiteSetting.short_site_description}"
+        end
       end
-      respond(list)
+
+      respond_with_list(list)
     end
 
     define_method("category_#{filter}") do
-      self.send(filter, { category: @category.id })
+      canonical_url "#{Discourse.base_url_no_prefix}#{@category.url}"
+      self.public_send(filter, category: @category.id)
     end
 
     define_method("category_none_#{filter}") do
-      self.send(filter, { category: @category.id, no_subcategories: true })
-    end
-
-    define_method("parent_category_category_#{filter}") do
-      self.send(filter, { category: @category.id })
-    end
-
-    define_method("parent_category_category_none_#{filter}") do
-      self.send(filter, { category: @category.id })
+      self.public_send(filter, category: @category.id, no_subcategories: true)
     end
   end
 
-  Discourse.anonymous_filters.each do |filter|
-    define_method("#{filter}_feed") do
-      discourse_expires_in 1.minute
+  def category_default
+    canonical_url "#{Discourse.base_url_no_prefix}#{@category.url}"
+    view_method = @category.default_view
+    view_method = 'latest' unless %w(latest top).include?(view_method)
 
-      @title = "#{SiteSetting.title} - #{I18n.t("rss_description.#{filter}")}"
-      @link = "#{Discourse.base_url}/#{filter}"
-      @description = I18n.t("rss_description.#{filter}")
-      @atom_link = "#{Discourse.base_url}/#{filter}.rss"
-      @topic_list = TopicQuery.new(nil, order: 'activity').public_send("list_#{filter}")
+    self.public_send(view_method, category: @category.id)
+  end
 
-      render 'list', formats: [:rss]
+  def topics_by
+    list_opts = build_topic_list_options
+    target_user = fetch_user_from_params({ include_inactive: current_user.try(:staff?) || (current_user && SiteSetting.show_inactive_accounts) }, [:user_stat, :user_option])
+    ensure_can_see_profile!(target_user)
+
+    list = generate_list_for("topics_by", target_user, list_opts)
+    list.more_topics_url = construct_url_with(:next, list_opts)
+    list.prev_topics_url = construct_url_with(:prev, list_opts)
+    respond_with_list(list)
+  end
+
+  def group_topics
+    group = Group.find_by(name: params[:group_name])
+    raise Discourse::NotFound unless group
+    guardian.ensure_can_see_group!(group)
+    guardian.ensure_can_see_group_members!(group)
+
+    list_opts = build_topic_list_options
+    list = generate_list_for("group_topics", group, list_opts)
+    list.more_topics_url = construct_url_with(:next, list_opts)
+    list.prev_topics_url = construct_url_with(:prev, list_opts)
+    respond_with_list(list)
+  end
+
+  def self.generate_message_route(action)
+    case action
+    when :private_messages_tag
+      define_method("#{action}") do
+        raise Discourse::NotFound if !guardian.can_tag_pms?
+        message_route(action)
+      end
+    when :private_messages_group, :private_messages_group_archive
+      define_method("#{action}") do
+        group = Group.find_by("LOWER(name) = ?", params[:group_name].downcase)
+        raise Discourse::NotFound if !group
+        raise Discourse::NotFound unless guardian.can_see_group_messages?(group)
+
+        message_route(action)
+      end
+    else
+      define_method("#{action}") do
+        message_route(action)
+      end
     end
   end
 
-  [:topics_by, :private_messages, :private_messages_sent, :private_messages_unread].each do |action|
-    define_method("#{action}") do
-      list_opts = build_topic_list_options
-      target_user = fetch_user_from_params
-      guardian.ensure_can_see_private_messages!(target_user.id) unless action == :topics_by
-      list = generate_list_for(action.to_s, target_user, list_opts)
-      url_prefix = "topics" unless action == :topics_by
-      list.more_topics_url = url_for(construct_next_url_with(list_opts, url_prefix))
-      list.prev_topics_url = url_for(construct_prev_url_with(list_opts, url_prefix))
-      respond(list)
+  def message_route(action)
+    target_user = fetch_user_from_params({ include_inactive: current_user.try(:staff?) }, [:user_stat, :user_option])
+    case action
+    when :private_messages_warnings
+      guardian.ensure_can_see_warnings!(target_user)
+    else
+      guardian.ensure_can_see_private_messages!(target_user.id)
     end
+    list_opts = build_topic_list_options
+    list = generate_list_for(action.to_s, target_user, list_opts)
+    url_prefix = "topics"
+    list.more_topics_url = construct_url_with(:next, list_opts, url_prefix)
+    list.prev_topics_url = construct_url_with(:prev, list_opts, url_prefix)
+    respond_with_list(list)
+  end
+
+  %i{
+    private_messages
+    private_messages_sent
+    private_messages_unread
+    private_messages_archive
+    private_messages_group
+    private_messages_group_archive
+    private_messages_tag
+    private_messages_warnings
+  }.each do |action|
+    generate_message_route(action)
+  end
+
+  def latest_feed
+    discourse_expires_in 1.minute
+
+    options = { order: 'created' }.merge(build_topic_list_options)
+
+    @title = "#{SiteSetting.title} - #{I18n.t("rss_description.latest")}"
+    @link = "#{Discourse.base_url}/latest"
+    @atom_link = "#{Discourse.base_url}/latest.rss"
+    @description = I18n.t("rss_description.latest")
+    @topic_list = TopicQuery.new(nil, options).list_latest
+
+    render 'list', formats: [:rss]
+  end
+
+  def top_feed
+    discourse_expires_in 1.minute
+
+    @title = "#{SiteSetting.title} - #{I18n.t("rss_description.top")}"
+    @link = "#{Discourse.base_url}/top"
+    @atom_link = "#{Discourse.base_url}/top.rss"
+    @description = I18n.t("rss_description.top")
+    period = params[:period] || SiteSetting.top_page_default_timeframe.to_sym
+    @topic_list = TopicQuery.new(nil).list_top_for(period)
+
+    render 'list', formats: [:rss]
   end
 
   def category_feed
     guardian.ensure_can_see!(@category)
     discourse_expires_in 1.minute
 
-    @title = @category.name
-    @link = "#{Discourse.base_url}/category/#{@category.slug_for_url}"
+    @title = "#{@category.name} - #{SiteSetting.title}"
+    @link = "#{Discourse.base_url_no_prefix}#{@category.url}"
+    @atom_link = "#{Discourse.base_url_no_prefix}#{@category.url}.rss"
     @description = "#{I18n.t('topics_in_category', category: @category.name)} #{@category.description}"
-    @atom_link = "#{Discourse.base_url}/category/#{@category.slug_for_url}.rss"
-    @topic_list = TopicQuery.new.list_new_in_category(@category)
+    @topic_list = TopicQuery.new(current_user).list_new_in_category(@category)
 
     render 'list', formats: [:rss]
   end
 
-  def popular_redirect
-    # We've renamed popular to latest. Use a redirect until we're sure we can
-    # safely remove this.
-    redirect_to latest_path, :status => 301
+  def user_topics_feed
+    discourse_expires_in 1.minute
+    target_user = fetch_user_from_params
+    ensure_can_see_profile!(target_user)
+
+    @title = "#{SiteSetting.title} - #{I18n.t("rss_description.user_topics", username: target_user.username)}"
+    @link = "#{Discourse.base_url}/u/#{target_user.username}/activity/topics"
+    @atom_link = "#{Discourse.base_url}/u/#{target_user.username}/activity/topics.rss"
+    @description = I18n.t("rss_description.user_topics", username: target_user.username)
+
+    @topic_list = TopicQuery
+      .new(nil, order: 'created')
+      .public_send("list_topics_by", target_user)
+
+    render 'list', formats: [:rss]
   end
 
   def top(options = nil)
-    discourse_expires_in 1.minute
-
-    top_options = build_topic_list_options
-    top_options.merge!(options) if options
-
-    top = generate_top_lists(top_options)
-
-    top.draft_key = Draft::NEW_TOPIC
-    top.draft_sequence = DraftSequence.current(current_user, Draft::NEW_TOPIC)
-    top.draft = Draft.get(current_user, top.draft_key, top.draft_sequence) if current_user
-
-    respond_to do |format|
-      format.html do
-        @top = top
-        store_preloaded('top_lists', MultiJson.dump(TopListSerializer.new(top, scope: guardian, root: false)))
-        render 'top'
-      end
-      format.json do
-        render json: MultiJson.dump(TopListSerializer.new(top, scope: guardian, root: false))
-      end
-    end
+    options ||= {}
+    period = params[:period]
+    period ||= ListController.best_period_for(current_user.try(:previous_visit_at), options[:category])
+    public_send("top_#{period}", options)
   end
 
   def category_top
-    options = { category: @category.id }
-    top(options)
+    top(category: @category.id)
   end
 
   def category_none_top
-    options = { category: @category.id, no_subcategories: true }
-    top(options)
-  end
-
-  def parent_category_category_top
-    options = { category: @category.id }
-    top(options)
+    top(category: @category.id, no_subcategories: true)
   end
 
   TopTopic.periods.each do |period|
@@ -174,116 +273,125 @@ class ListController < ApplicationController
       top_options = build_topic_list_options
       top_options.merge!(options) if options
       top_options[:per_page] = SiteSetting.topics_per_period_in_top_page
+
       user = list_target_user
       list = TopicQuery.new(user, top_options).list_top_for(period)
-      list.more_topics_url = construct_next_url_with(top_options)
-      list.prev_topics_url = construct_prev_url_with(top_options)
-      respond(list)
+      list.for_period = period
+      list.more_topics_url = construct_url_with(:next, top_options)
+      list.prev_topics_url = construct_url_with(:prev, top_options)
+      @rss = "top"
+      @params = { period: period }
+      @rss_description = "top_#{period}"
+
+      if use_crawler_layout?
+        @title = I18n.t("js.filters.top.#{period}.title") + " - #{SiteSetting.title}"
+      end
+
+      respond_with_list(list)
     end
 
     define_method("category_top_#{period}") do
-      self.send("top_#{period}", { category: @category.id })
+      self.public_send("top_#{period}", category: @category.id)
     end
 
     define_method("category_none_top_#{period}") do
-      self.send("top_#{period}", { category: @category.id, no_subcategories: true })
+      self.public_send("top_#{period}",
+        category: @category.id,
+        no_subcategories: true
+      )
     end
 
-    define_method("parent_category_category_#{period}") do
-      self.send("top_#{period}", { category: @category.id })
+    # rss feed
+    define_method("top_#{period}_feed") do |options = nil|
+      discourse_expires_in 1.minute
+
+      @description = I18n.t("rss_description.top_#{period}")
+      @title = "#{SiteSetting.title} - #{@description}"
+      @link = "#{Discourse.base_url}/top?period=#{period}"
+      @atom_link = "#{Discourse.base_url}/top.rss?period=#{period}"
+      @topic_list = TopicQuery.new(nil).list_top_for(period)
+
+      render 'list', formats: [:rss]
     end
   end
 
   protected
 
-  def respond(list)
-    discourse_expires_in 1.minute
-
-    list.draft_key = Draft::NEW_TOPIC
-    list.draft_sequence = DraftSequence.current(current_user, Draft::NEW_TOPIC)
-    list.draft = Draft.get(current_user, list.draft_key, list.draft_sequence) if current_user
-
-    respond_to do |format|
-      format.html do
-        @list = list
-        store_preloaded('topic_list', MultiJson.dump(TopicListSerializer.new(list, scope: guardian)))
-        render 'list'
-      end
-      format.json do
-        render_serialized(list, TopicListSerializer)
-      end
-    end
+  def next_page_params
+    page_params.merge(page: params[:page].to_i + 1)
   end
 
-  def next_page_params(opts = nil)
-    page_params(opts).merge(page: params[:page].to_i + 1)
-  end
-
-  def prev_page_params(opts = nil)
+  def prev_page_params
     pg = params[:page].to_i
     if pg > 1
-      page_params(opts).merge(page: pg - 1)
+      page_params.merge(page: pg - 1)
     else
-      page_params(opts).merge(page: nil)
+      page_params.merge(page: nil)
     end
   end
-
 
   private
 
-  def page_params(opts = nil)
-    opts ||= {}
-    route_params = {format: 'json'}
-    route_params[:category]        = @category.slug_for_url if @category
-    route_params[:parent_category] = @category.parent_category.slug_for_url if @category && @category.parent_category
-    route_params[:order]     = opts[:order] if opts[:order].present?
-    route_params[:ascending] = opts[:ascending] if opts[:ascending].present?
+  def page_params
+    route_params = { format: 'json' }
+
+    if @category.present?
+      slug_path = @category.slug_path
+
+      route_params[:category_slug_path_with_id] =
+        (slug_path + [@category.id.to_s]).join("/")
+    end
+
+    route_params[:username] = UrlHelper.encode_component(params[:username]) if params[:username].present?
+    route_params[:period] = params[:period] if params[:period].present?
     route_params
   end
 
   def set_category
-    slug_or_id = params.fetch(:category)
-    parent_slug_or_id = params[:parent_category]
+    category_slug_path_with_id = params.require(:category_slug_path_with_id)
 
-    parent_category_id = nil
-    if parent_slug_or_id.present?
-      parent_category_id = Category.query_parent_category(parent_slug_or_id)
-      raise Discourse::NotFound.new if parent_category_id.blank?
+    @category = Category.find_by_slug_path_with_id(category_slug_path_with_id)
+    if @category.nil?
+      raise Discourse::NotFound.new("category not found", check_permalinks: true)
     end
 
-    @category = Category.query_category(slug_or_id, parent_category_id)
-    @description_meta = @category.description
+    params[:category] = @category.id.to_s
 
-    guardian.ensure_can_see!(@category)
+    if !guardian.can_see?(@category)
+      if SiteSetting.detailed_404
+        raise Discourse::InvalidAccess
+      else
+        raise Discourse::NotFound
+      end
+    end
 
-    raise Discourse::NotFound.new if @category.blank?
-  end
+    # Check if the category slug is incorrect and redirect to a link containing
+    # the correct one.
+    current_slug = category_slug_path_with_id
+    if SiteSetting.slug_generation_method == "encoded"
+      current_slug = current_slug.split("/").map { |slug| CGI.escape(slug) }.join("/")
+    end
+    real_slug = @category.full_slug("/")
+    if CGI.unescape(current_slug) != CGI.unescape(real_slug)
+      url = request.fullpath.gsub(current_slug, real_slug)
+      if ActionController::Base.config.relative_url_root
+        url = url.sub(ActionController::Base.config.relative_url_root, "")
+      end
 
-  def build_topic_list_options
-    # exclude_category = 1. from params / 2. parsed from top menu / 3. nil
-    options = {
-      page: params[:page],
-      topic_ids: param_to_integer_list(:topic_ids),
-      exclude_category: (params[:exclude_category] || select_menu_item.try(:filter)),
-      category: params[:category],
-      order: params[:order],
-      ascending: params[:ascending],
-      status: params[:status]
-    }
-    options[:no_subcategories] = true if params[:no_subcategories] == 'true'
+      return redirect_to path(url), status: 301
+    end
 
-    options
-  end
+    @description_meta = if @category.uncategorized?
+      I18n.t("category.uncategorized_description", locale: SiteSetting.default_locale)
+    elsif @category.description_text.present?
+      @category.description_text
+    else
+      SiteSetting.site_description
+    end
 
-  def select_menu_item
-    menu_item = SiteSetting.top_menu_items.select do |mu|
-      (mu.has_specific_category? && mu.specific_category == @category.try(:slug)) ||
-      action_name == mu.name ||
-      (action_name.include?("top") && mu.name == "top")
-    end.first
-
-    menu_item = nil if menu_item.try(:has_specific_category?) && menu_item.specific_category == @category.try(:slug)
-    menu_item
+    if use_crawler_layout?
+      @subcategories = @category.subcategories.select { |c| guardian.can_see?(c) }
+    end
   end
 
   def list_target_user
@@ -295,51 +403,61 @@ class ListController < ApplicationController
   end
 
   def generate_list_for(action, target_user, opts)
-    TopicQuery.new(current_user, opts).send("list_#{action}", target_user)
+    TopicQuery.new(current_user, opts).public_send("list_#{action}", target_user)
   end
 
-  def construct_next_url_with(opts, url_prefix = nil)
+  def construct_url_with(action, opts, url_prefix = nil)
     method = url_prefix.blank? ? "#{action_name}_path" : "#{url_prefix}_#{action_name}_path"
-    public_send(method, opts.merge(next_page_params(opts)))
-  end
 
-  def construct_prev_url_with(opts, url_prefix = nil)
-    method = url_prefix.blank? ? "#{action_name}_path" : "#{url_prefix}_#{action_name}_path"
-    public_send(method, opts.merge(prev_page_params(opts)))
-  end
+    page_params =
+      case action
+      when :prev
+        prev_page_params
+      when :next
+        next_page_params
+      else
+        raise "unreachable"
+      end
 
-  def generate_top_lists(options)
-    top = TopLists.new
-
-    options[:per_page] = SiteSetting.topics_per_period_in_top_summary
-    topic_query = TopicQuery.new(current_user, options)
-
-    if current_user.present?
-      periods = [ListController.best_period_for(current_user.previous_visit_at)]
-    else
-      periods = TopTopic.periods
+    opts = opts.dup
+    if SiteSetting.unicode_usernames && opts[:group_name]
+      opts[:group_name] = UrlHelper.encode_component(opts[:group_name])
     end
+    opts.delete(:category) if page_params.include?(:category_slug_path_with_id)
 
-    periods.each { |period| top.send("#{period}=", topic_query.list_top_for(period)) }
-
-    top
+    public_send(method, opts.merge(page_params)).sub('.json?', '?')
   end
 
-  def self.best_period_for(previous_visit_at)
-    ListController.best_periods_for(previous_visit_at).each do |period|
-      return period if TopTopic.where("#{period}_score > 0").count >= SiteSetting.topics_per_period_in_top_page
+  def ensure_can_see_profile!(target_user = nil)
+    raise Discourse::NotFound unless guardian.can_see_profile?(target_user)
+  end
+
+  def self.best_period_for(previous_visit_at, category_id = nil)
+    default_period = ((category_id && Category.where(id: category_id).pluck_first(:default_top_period)) ||
+          SiteSetting.top_page_default_timeframe).to_sym
+
+    best_period_with_topics_for(previous_visit_at, category_id, default_period) || default_period
+  end
+
+  def self.best_period_with_topics_for(previous_visit_at, category_id = nil, default_period = SiteSetting.top_page_default_timeframe)
+    best_periods_for(previous_visit_at, default_period.to_sym).find do |period|
+      top_topics = TopTopic.where("#{period}_score > 0")
+      top_topics = top_topics.joins(:topic).where("topics.category_id = ?", category_id) if category_id
+      top_topics = top_topics.limit(SiteSetting.topics_per_period_in_top_page)
+      top_topics.count == SiteSetting.topics_per_period_in_top_page
     end
-    # default period is yearly
-    :yearly
   end
 
-  def self.best_periods_for(date)
-    date ||= 1.year.ago
+  def self.best_periods_for(date, default_period = :all)
+    return [default_period, :all].uniq unless date
+
     periods = []
-    periods << :daily if date > 8.days.ago
-    periods << :weekly if date > 35.days.ago
-    periods << :monthly if date > 180.days.ago
-    periods << :yearly
+    periods << :daily     if date > (1.week + 1.day).ago
+    periods << :weekly    if date > (1.month + 1.week).ago
+    periods << :monthly   if date > (3.months + 3.weeks).ago
+    periods << :quarterly if date > (1.year + 1.month).ago
+    periods << :yearly    if date > 3.years.ago
+    periods << :all
     periods
   end
 

@@ -1,4 +1,6 @@
-class RenameExpressionTypeId < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class RenameExpressionTypeId < ActiveRecord::Migration[4.2]
 
   def up
     add_column :expression_types, :expression_index, :integer

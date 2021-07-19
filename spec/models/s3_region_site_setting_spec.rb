@@ -1,4 +1,6 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe S3RegionSiteSetting do
 
@@ -9,12 +11,6 @@ describe S3RegionSiteSetting do
 
     it 'returns false for an invalid S3 region' do
       expect(S3RegionSiteSetting.valid_value?('the-moon')).to eq(false)
-    end
-  end
-
-  describe 'values' do
-    it 'returns all the S3 regions and blank' do
-      expect(S3RegionSiteSetting.values.map {|x| x[:value]}.sort).to eq(['', 'us-east-1', 'us-west-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'sa-east-1'].sort)
     end
   end
 

@@ -1,14 +1,20 @@
+# frozen_string_literal: true
+
 Fabricator(:user_stat) do
 end
 
-Fabricator(:user) do
+Fabricator(:user, class_name: :user) do
   name 'Bruce Wayne'
   username { sequence(:username) { |i| "bruce#{i}" } }
   email { sequence(:email) { |i| "bruce#{i}@wayne.com" } }
   password 'myawesomepassword'
-  trust_level TrustLevel.levels[:basic]
-  bio_raw "I'm batman!"
-  ip_address { sequence(:ip_address) { |i| "99.232.23.#{i%254}"} }
+  trust_level TrustLevel[1]
+  ip_address { sequence(:ip_address) { |i| "99.232.23.#{i % 254}" } }
+  active true
+end
+
+Fabricator(:user_with_secondary_email, from: :user) do
+  after_create { |user| Fabricate(:secondary_email, user: user) }
 end
 
 Fabricator(:coding_horror, from: :user) do
@@ -22,27 +28,35 @@ Fabricator(:evil_trout, from: :user) do
   name 'Evil Trout'
   username 'eviltrout'
   email 'eviltrout@somewhere.com'
-  password 'imafish'
+  password 'imafish123'
 end
 
 Fabricator(:walter_white, from: :user) do
   name 'Walter White'
   username 'heisenberg'
   email 'wwhite@bluemeth.com'
-  password 'letscook'
+  password 'letscook123'
+end
+
+Fabricator(:inactive_user, from: :user) do
+  name 'Inactive User'
+  username 'inactive_user'
+  email 'inactive@idontexist.com'
+  password 'qwerqwer123'
+  active false
 end
 
 Fabricator(:moderator, from: :user) do
-  name { sequence(:name) {|i| "A#{i} Moderator"} }
-  username { sequence(:username) {|i| "moderator#{i}"} }
-  email { sequence(:email) {|i| "moderator#{i}@discourse.org"} }
+  name { sequence(:name) { |i| "A#{i} Moderator" } }
+  username { sequence(:username) { |i| "moderator#{i}" } }
+  email { sequence(:email) { |i| "moderator#{i}@discourse.org" } }
   moderator true
 end
 
 Fabricator(:admin, from: :user) do
   name 'Anne Admin'
-  username { sequence(:username) {|i| "anne#{i}"} }
-  email { sequence(:email) {|i| "anne#{i}@discourse.org"} }
+  username { sequence(:username) { |i| "anne#{i}" } }
+  email { sequence(:email) { |i| "anne#{i}@discourse.org" } }
   admin true
 end
 
@@ -50,7 +64,7 @@ Fabricator(:newuser, from: :user) do
   name 'Newbie Newperson'
   username 'newbie'
   email 'newbie@new.com'
-  trust_level TrustLevel.levels[:newuser]
+  trust_level TrustLevel[0]
 end
 
 Fabricator(:active_user, from: :user) do
@@ -58,21 +72,47 @@ Fabricator(:active_user, from: :user) do
   username { sequence(:username) { |i| "luke#{i}" } }
   email { sequence(:email) { |i| "luke#{i}@skywalker.com" } }
   password 'myawesomepassword'
-  trust_level TrustLevel.levels[:basic]
-  active true
-  bio_raw "Don't ask me about my dad!"
+  trust_level TrustLevel[1]
+
+  after_create do |user|
+    user.user_profile.bio_raw = "Don't ask me about my dad!"
+    user.user_profile.save!
+  end
 end
 
 Fabricator(:leader, from: :user) do
-  name 'Leader McLeaderman'
+  name 'Veteran McVeteranish'
   username { sequence(:username) { |i| "leader#{i}" } }
   email { sequence(:email) { |i| "leader#{i}@leaderfun.com" } }
-  trust_level TrustLevel.levels[:leader]
+  trust_level TrustLevel[3]
 end
 
-Fabricator(:elder, from: :user) do
-  name 'Elder McElderson'
-  username { sequence(:username) { |i| "elder#{i}" } }
-  email { sequence(:email) { |i| "elder#{i}@elderfun.com" } }
-  trust_level TrustLevel.levels[:elder]
+Fabricator(:trust_level_4, from: :user) do
+  name 'Leader McElderson'
+  username { sequence(:username) { |i| "tl4#{i}" } }
+  email { sequence(:email) { |i| "tl4#{i}@elderfun.com" } }
+  trust_level TrustLevel[4]
+end
+
+Fabricator(:anonymous, from: :user) do
+  name ''
+  username { sequence(:username) { |i| "anonymous#{i}" } }
+  email { sequence(:email) { |i| "anonymous#{i}@anonymous.com" } }
+  trust_level TrustLevel[1]
+  manual_locked_trust_level TrustLevel[1]
+
+  after_create do
+    # this is not "the perfect" fabricator in that user id -1 is system
+    # but creating a proper account here is real slow and has a huge
+    # impact on the test suite run time
+    create_anonymous_user_master(master_user_id: -1, active: true)
+  end
+end
+
+Fabricator(:staged, from: :user) do
+  staged true
+end
+
+Fabricator(:unicode_user, from: :user) do
+  username { sequence(:username) { |i| "Löwe#{i}" } }
 end

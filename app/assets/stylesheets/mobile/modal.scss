@@ -1,79 +1,66 @@
 // base styles for every modal popup used in Discourse
 
-.modal-open #main {overflow:hidden;}
+.modal-open #main {
+  overflow: hidden;
+}
 
 .modal-middle-container {
-  margin-top: 10%;
   max-width: 100%;
   margin-bottom: 30px; // For iOS Safari issues
 }
 
 // Hardcode to be the same as before for now. I would recommend not using bootbox, or finding a way so the html structure can be the same
 .bootbox.modal {
-  position: fixed;
   top: 10%;
-  z-index: 1050;
-  overflow: auto;
   width: 100%;
-  height: auto;
-  background-color: $secondary;
-  border: 1px solid scale-color($secondary, $lightness: 90%);
-  border: 1px solid rgba(0, 0, 0, 0.3);
-
-  @include border-radius-all (6px);
-  box-shadow: 0 3px 7px rgba($primary, 0.3);
-  background-clip: padding-box;
 }
 
-.modal.fade {
-  -webkit-transition: opacity .3s linear, top .3s ease-out;
-  transition: opacity .3s linear, top .3s ease-out;
-  top: -25%;
-}
-.modal.fade.in {
-  top: 50%;
-}
-.modal-body {
-  overflow-y: auto;
-  max-height: 400px;
-  padding: 10px 15px 10px 15px;
+.modal {
+  &.fade {
+    transition: opacity 0.3s linear, top 0.3s ease-out;
+    top: -25%;
+  }
+  &.fade.in {
+    top: 50%;
+  }
+  .modal-body {
+    padding: 0.667em;
+    > * {
+      // adding box-sizing: border-box; to .modal-body causes iOS dropdown issues
+      box-sizing: border-box;
+    }
+  }
 }
 
-// an ember metamorph is inserted between btn's sometimes, breaking this rule, but only on mobile for some reason:
-// .modal-footer .btn + .btn {
-.modal-footer .btn {
-  margin-right: 5px;
-  margin-bottom: 5px;
+// we need a little extra room on mobile for the
+// stuff inside the footer to fit
+.modal-footer {
+  padding: 10px;
 }
-.modal-footer .btn-group .btn + .btn {
-  margin-left: -1px;
-}
+
 .modal-header {
+  padding: 10px;
   h3 {
-    color: $danger;
-    font-size: 15px;
-    padding: 0 0 0 20px;
-  }
-  .close {
-    float: right;
-    font-size: 24px;
-    padding: 15px; // more pixels to touch
-    margin: -15px 0 0 0;
-    text-decoration: none;
-    color: $primary;
-    cursor: pointer;
+    font-size: $font-up-2;
   }
 }
 
+.close {
+  font-size: $font-up-4;
+}
 
-
-#move-selected {
+#choosing-topic {
   p {
     margin-top: 0;
+    padding-bottom: 0;
   }
 
-  input[type=radio] {
+  input[type="radio"] {
     margin-right: 10px;
+  }
+
+  .category-chooser {
+    margin-bottom: 9px;
   }
 
   button {
@@ -84,57 +71,56 @@
 
   form {
     margin-top: 20px;
-    input[type=text] {
-      width: 500px;
+    input:not(.filter-input)[type="text"] {
+      box-sizing: border-box;
+      width: 100%;
     }
   }
 }
 
-.flag-modal {
-  max-height: 450px;
-}
-
-.custom-message-length {
-  margin-bottom: 10px;
-  margin-left: 20px;
-}
-
-.flag-message {
-  margin-left: 20px;
-  width: 95% !important;
-}
-
-.edit-category-modal {
-  .modal-body {
-    position: relative;
-    height: 350px;
+@media only screen and (max-device-width: 568px) {
+  .modal .flag-modal-body .flag-message {
+    height: 3em;
   }
-  &.small .modal-body {
-    height: 310px;
+}
+
+/* fixes for the new account confirm dialog on mobile */
+
+.modal-inner-container {
+  margin-bottom: 20px;
+}
+
+/* fix for tall modals */
+
+.fixed-modal {
+  .modal-middle-container {
+    margin-bottom: 0;
   }
-  .secure-category-options {
-    margin: 10px 0 0 16px;
-    .badge-list {
-      margin: 10px 0;
-      li {
-        margin: 0 4px 8px 0;
-        a {
-          color: #888;
-          cursor: pointer;
-        }
-      }
+  .modal-inner-container {
+    max-height: 90vh;
+    overflow: auto;
+  }
+
+  &.insert-hyperlink-modal .modal-inner-container {
+    overflow: visible;
+  }
+}
+
+.modal .modal-body.reorder-categories {
+  max-height: calc(100vh - 220px);
+}
+
+.discard-draft-modal {
+  .modal-inner-container {
+    width: 250px;
+  }
+  .modal-footer {
+    justify-content: center;
+    flex-flow: column nowrap;
+    align-items: stretch;
+
+    .btn {
+      margin-right: 0;
     }
   }
-}
-
-.tabbed-modal {
-  .modal-body {
-    position: relative;
-    height: 350px;
-  }
-}
-
-
-.modal-tab {
-  position: absolute;
 }

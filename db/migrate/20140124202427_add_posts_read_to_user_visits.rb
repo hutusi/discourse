@@ -1,4 +1,6 @@
-class AddPostsReadToUserVisits < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddPostsReadToUserVisits < ActiveRecord::Migration[4.2]
   def up
     add_column :user_visits, :posts_read, :integer, default: 0
 

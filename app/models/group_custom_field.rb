@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class GroupCustomField < ActiveRecord::Base
   belongs_to :group
 end
@@ -10,8 +12,8 @@ end
 #  group_id   :integer          not null
 #  name       :string(256)      not null
 #  value      :text
-#  created_at :datetime
-#  updated_at :datetime
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
 #
 # Indexes
 #

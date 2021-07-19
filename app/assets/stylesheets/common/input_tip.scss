@@ -1,30 +1,26 @@
-@import "foundation/variables";
-@import "foundation/mixins";
-
 .popup-tip {
   position: absolute;
   display: block;
   padding: 5px 10px;
-  z-index: 101;
-  @include border-radius-all(2px);
-  border: solid 1px #955;
+  z-index: z("tooltip");
   &.bad {
-    background-color: #b66;
+    background: var(--danger-medium);
     color: white;
-    box-shadow: 1px 1px 5px #777, inset 0 0 9px #b55;
+    box-shadow: shadow("dropdown");
   }
-  &.hide, &.good {
+  &.hide,
+  &.good {
     display: none;
   }
   .close {
     float: right;
-    color: $primary;
+    color: var(--primary);
     opacity: 0.5;
-    font-size: 15px;
-    margin-left: 4px;
+    font-size: $font-0;
+    margin: 0 0 0 4px;
     cursor: pointer;
   }
   .close:hover {
-    opacity: 1.0;
+    opacity: 1;
   }
 }

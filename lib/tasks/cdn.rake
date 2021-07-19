@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # cdn related tasks
 #
 desc 'pre-stage assets on cdn'
@@ -34,7 +36,7 @@ task 'assets:prestage' => :environment do |t|
       "id" => config["id"],
       "login" => config["login"],
       "passwd" => config["password"],
-      "json" => {"prefetch_paths" => asset}.to_json
+      "json" => { "prefetch_paths" => asset }.to_json
     )
 
     response = http.request(request)
@@ -43,7 +45,7 @@ task 'assets:prestage' => :environment do |t|
       failed_assets.push(asset)
     end
   end
-  
+
   if failed_assets.length > 0
     raise "Failed to pre-stage #{failed_assets.length}/#{assets.length} files"
   end

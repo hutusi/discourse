@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 Discourse::Application.configure do
   # Settings specified here will take precedence over those in config/application.rb
 
@@ -8,17 +10,20 @@ Discourse::Application.configure do
   config.cache_classes = true
 
   # Configure static asset server for tests with Cache-Control for performance
-  config.serve_static_assets = true
+  config.public_file_server.enabled = true
 
-  # Show full error reports and disable caching
-  config.consider_all_requests_local       = true
+  # don't consider reqs local so we can properly handle exceptions like we do in prod
+  config.consider_all_requests_local = false
+
+  # disable caching
   config.action_controller.perform_caching = false
 
-  # Raise exceptions instead of rendering exception templates
-  config.action_dispatch.show_exceptions = false
+  # production has "show exceptions" on so we better have it
+  # in test as well
+  config.action_dispatch.show_exceptions = true
 
   # Disable request forgery protection in test environment
-  config.action_controller.allow_forgery_protection    = false
+  config.action_controller.allow_forgery_protection = false
 
   # Tell Action Mailer not to deliver emails to the real world.
   # The :test delivery method accumulates sent emails in the
@@ -40,7 +45,36 @@ Discourse::Application.configure do
   config.assets.compile = true
   config.assets.digest = false
 
-  # silence deprecation warnings in test
   config.eager_load = false
-  ActiveSupport::Deprecation.silenced = true
+
+  if ENV['RAILS_ENABLE_TEST_LOG']
+    config.logger = Logger.new(STDOUT)
+    config.log_level = ENV['RAILS_TEST_LOG_LEVEL'].present? ? ENV['RAILS_TEST_LOG_LEVEL'].to_sym : :info
+  else
+    config.logger = Logger.new(nil)
+    config.log_level = :fatal
+  end
+
+  if defined? RspecErrorTracker
+    config.middleware.insert_after ActionDispatch::Flash, RspecErrorTracker
+  end
+
+  config.after_initialize do
+    SiteSetting.defaults.tap do |s|
+      s.set_regardless_of_locale(:s3_upload_bucket, 'bucket')
+      s.set_regardless_of_locale(:min_post_length, 5)
+      s.set_regardless_of_locale(:min_first_post_length, 5)
+      s.set_regardless_of_locale(:min_personal_message_post_length, 10)
+      s.set_regardless_of_locale(:crawl_images, false)
+      s.set_regardless_of_locale(:download_remote_images_to_local, false)
+      s.set_regardless_of_locale(:unique_posts_mins, 0)
+      s.set_regardless_of_locale(:max_consecutive_replies, 0)
+      # disable plugins
+      if ENV['LOAD_PLUGINS'] == '1'
+        s.set_regardless_of_locale(:discourse_narrative_bot_enabled, false)
+      end
+    end
+
+    SiteSetting.refresh!
+  end
 end

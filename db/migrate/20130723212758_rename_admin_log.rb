@@ -1,4 +1,6 @@
-class RenameAdminLog < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class RenameAdminLog < ActiveRecord::Migration[4.2]
   def up
     rename_table :admin_logs, :staff_action_logs
     rename_column :staff_action_logs, :admin_id, :staff_user_id

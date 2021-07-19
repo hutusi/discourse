@@ -1,4 +1,6 @@
-class FixPostTimings < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class FixPostTimings < ActiveRecord::Migration[4.2]
   def up
     remove_index :post_timings, [:thread_id, :post_number]
     remove_index :post_timings, [:thread_id, :post_number, :user_id]

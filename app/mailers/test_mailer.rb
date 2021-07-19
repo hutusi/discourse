@@ -1,4 +1,4 @@
-require_dependency 'email/message_builder'
+# frozen_string_literal: true
 
 class TestMailer < ActionMailer::Base
   include Email::BuildEmailHelper

@@ -1,18 +1,31 @@
+# frozen_string_literal: true
+
 module SiteSettings; end
 
 class SiteSettings::LocalProcessProvider
+  class Setting
+    attr_accessor :name, :data_type, :value
 
-  attr_accessor :current_site
+    def value_changed?
+      false
+    end
 
-  Setting = Struct.new(:name, :value, :data_type) unless defined? SiteSettings::LocalProcessProvider::Setting
+    def saved_change_to_value?
+      true
+    end
+
+    def initialize(name, data_type)
+      self.name = name
+      self.data_type = data_type
+    end
+  end
 
   def settings
     @settings[current_site] ||= {}
   end
 
-  def initialize()
+  def initialize
     @settings = {}
-    self.current_site = "test"
   end
 
   def all
@@ -24,7 +37,16 @@ class SiteSettings::LocalProcessProvider
   end
 
   def save(name, value, data_type)
-    settings[name] = Setting.new(name,value, data_type)
+    # NOTE: convert to string to simulate the conversion that is happening
+    # when using DbProvider
+    setting = settings[name]
+    if setting.blank?
+      setting = Setting.new(name, data_type)
+      settings[name] = setting
+    end
+    setting.value = value.to_s
+    DiscourseEvent.trigger(:site_setting_saved, setting)
+    setting
   end
 
   def destroy(name)
@@ -35,4 +57,7 @@ class SiteSettings::LocalProcessProvider
     @settings[current_site] = {}
   end
 
+  def current_site
+    RailsMultisite::ConnectionManagement.current_db
+  end
 end

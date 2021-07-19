@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require 'ipaddr'
 
-class ChangeIpToInetInTopicLinkClicks < ActiveRecord::Migration
+class ChangeIpToInetInTopicLinkClicks < ActiveRecord::Migration[4.2]
   def up
     add_column :topic_link_clicks, :ip_address, :inet
 
@@ -11,7 +13,7 @@ class ChangeIpToInetInTopicLinkClicks < ActiveRecord::Migration
       (ip >>  0 & 255)
     );"
 
-    change_column :topic_link_clicks, :ip_address, :inet, { :null => false }
+    change_column :topic_link_clicks, :ip_address, :inet, null: false
     remove_column :topic_link_clicks, :ip
   end
 

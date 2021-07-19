@@ -1,4 +1,6 @@
-class CreateFacebookUserInfos < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateFacebookUserInfos < ActiveRecord::Migration[4.2]
   def change
     create_table :facebook_user_infos do |t|
       t.integer :user_id, null: false
@@ -11,7 +13,7 @@ class CreateFacebookUserInfos < ActiveRecord::Migration
       t.string :name
       t.string :link
 
-      t.timestamps
+      t.timestamps null: false
     end
     add_index :facebook_user_infos, :user_id, unique: true
     add_index :facebook_user_infos, :facebook_user_id, unique: true

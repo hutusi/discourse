@@ -1,4 +1,6 @@
-class FixLinkPostId < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class FixLinkPostId < ActiveRecord::Migration[4.2]
   def up
     to_remove = []
 
@@ -18,7 +20,7 @@ class FixLinkPostId < ActiveRecord::Migration
 
     end
 
-    TopicLink.delete_all ["id in (?)", to_remove]
+    TopicLink.where("id in (?)", to_remove).delete_all
   end
 
   def down

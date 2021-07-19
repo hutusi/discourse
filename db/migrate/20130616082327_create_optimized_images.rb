@@ -1,4 +1,6 @@
-class CreateOptimizedImages < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateOptimizedImages < ActiveRecord::Migration[4.2]
   def up
     create_table :optimized_images do |t|
       t.string :sha, null: false

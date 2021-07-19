@@ -1,6 +1,6 @@
-require 'spec_helper'
-require_dependency 'post'
-require_dependency 'user'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe BasicPostSerializer do
 
@@ -11,13 +11,13 @@ describe BasicPostSerializer do
     let(:json) { serializer.as_json }
 
     it "returns the name it when `enable_names` is true" do
-      SiteSetting.stubs(:enable_names?).returns(true)
-      json[:name].should be_present
+      SiteSetting.enable_names = true
+      expect(json[:name]).to be_present
     end
 
     it "doesn't return the name it when `enable_names` is false" do
-      SiteSetting.stubs(:enable_names?).returns(false)
-      json[:name].should be_blank
+      SiteSetting.enable_names = false
+      expect(json[:name]).to be_blank
     end
 
   end

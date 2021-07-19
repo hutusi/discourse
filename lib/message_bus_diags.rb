@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 class MessageBusDiags
 
   @host_info = {}
 
   def self.my_id
-    @my_id ||= "#{`hostname`}-#{Process.pid}"
+    @my_id ||= "#{Discourse.os_hostname}-#{Process.pid}"
   end
 
   def self.seen_host(name)
@@ -11,7 +13,7 @@ class MessageBusDiags
   end
 
   def self.establish_peer_names
-    MessageBus.publish "/server-name", {channel: "/server-name-reply/#{my_id}"}
+    MessageBus.publish "/server-name", channel: "/server-name-reply/#{my_id}"
   end
 
   def self.seen_hosts

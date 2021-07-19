@@ -1,34 +1,34 @@
 # How Do I Install Discourse?
 
+> :bell: The only officially supported installs of Discourse are [Docker](https://www.docker.io/) based. You must have SSH access to a 64-bit Linux server **with Docker support**. We regret that we cannot support any other methods of installation including cpanel, plesk, webmin, etc.
+
 Simple 30 minute basic install:  
-[**Beginner Docker install guide for Digital Ocean**][do]
+[**Beginner Docker install guide**][basic]
 
-Powerful, flexible, large install:  
-[**Advanced Docker install guide**][docker]
+Powerful, flexible, large / multiple server install:  
+[**Advanced Docker install guide**][advanced]
 
-The only officially supported installs of Discourse are the [Docker](https://www.docker.io/) based beginner and advanced installs. We regret that we cannot support any other methods of installation. (Alternately, you can try the [unofficial Heroku install guide][heroku], the [unofficial Ubuntu install guide][ubuntu], the [BitNami Discourse Virtual Machine package][bitnami] or [Cloud66][cloud66].)
+### Why do you only officially support Docker?
+
+Hosting Rails applications is complicated. Even if you already have Postgres, Redis and Ruby installed on your server, you still need to worry about running and monitoring your Sidekiq and Rails processes, as well as configuring Nginx. With Docker, our fully optimized Discourse configuration is available to you in a simple container, along with a web-based GUI that makes upgrading to new versions of Discourse as easy as clicking a button.
 
 ### Hardware Requirements
 
-- Dual core CPU recommended
-- 1 GB RAM minimum (with [swap][swap]), 2 GB recommended
+- modern single core CPU, dual core recommended
+- 1 GB RAM minimum (with [swap][swap])
+- 64 bit Linux compatible with Docker
+- 10 GB disk space minimum
 
 ### Software Requirements
 
-- [Postgres 9.1+](http://www.postgresql.org/download/)
-- [Redis 2.6+](http://redis.io/download)
-- [Ruby 1.9.3+](http://www.ruby-lang.org/en/downloads/) (we recommend 2.0.0-p353 or higher)
-
-
+- [Postgres 13+](https://www.postgresql.org/download/)
+- [Redis 6+](https://redis.io/download)
+- [Ruby 2.7](https://www.ruby-lang.org/en/downloads/) (we recommend 2.7.2)
 
 ## Security
 
 We take security very seriously at Discourse, and all our code is 100% open source and peer reviewed. Please read [our security guide](https://github.com/discourse/discourse/blob/master/docs/SECURITY.md) for an overview of security measures in Discourse.
 
-[do]: https://github.com/discourse/discourse/blob/master/docs/INSTALL-digital-ocean.md
-[docker]: https://github.com/discourse/discourse_docker
-[bitnami]: http://bitnami.com/stack/discourse
-[cloud66]: https://github.com/discourse/discourse/blob/master/docs/INSTALL-cloud66.md
-[heroku]: https://github.com/discourse/discourse/blob/master/docs/install-HEROKU.md
-[ubuntu]: https://github.com/discourse/discourse/blob/master/docs/INSTALL-ubuntu.md
-[swap]: https://www.digitalocean.com/community/articles/how-to-add-swap-on-ubuntu-12-04
+[basic]: https://github.com/discourse/discourse/blob/master/docs/INSTALL-cloud.md
+[advanced]: https://github.com/discourse/discourse_docker
+[swap]: https://meta.discourse.org/t/create-a-swapfile-for-your-linux-server/13880

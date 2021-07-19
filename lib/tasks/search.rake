@@ -1,42 +1,50 @@
+# frozen_string_literal: true
+
 task "search:reindex" => :environment do
+  ENV['RAILS_DB'] ? reindex_search : reindex_search_all_sites
+end
+
+def reindex_search(db = RailsMultisite::ConnectionManagement.current_db)
+  puts "Reindexing '#{db}'"
+  puts ""
+  puts "Posts"
+  Post.includes(topic: [:category, :tags]).find_each do |p|
+    if p.post_number == 1
+      SearchIndexer.index(p.topic, force: true)
+    else
+      SearchIndexer.index(p, force: true)
+    end
+    putc "."
+  end
+
+  puts
+  puts "Users"
+  User.find_each do |u|
+    SearchIndexer.index(u, force: true)
+    putc "."
+  end
+
+  puts
+  puts "Categories"
+
+  Category.find_each do |c|
+    SearchIndexer.index(c, force: true)
+    putc "."
+  end
+
+  puts
+  puts "Tags"
+
+  Tag.find_each do |t|
+    SearchIndexer.index(t, force: true)
+    putc "."
+  end
+
+  puts
+end
+
+def reindex_search_all_sites
   RailsMultisite::ConnectionManagement.each_connection do |db|
-    puts "Reindexing #{db}"
-    puts ""
-    puts "Posts:"
-    Post.exec_sql("select p.id, p.cooked, c.name category, t.title from
-                   posts p
-                   join topics t on t.id = p.topic_id
-                   left join categories c on c.id = t.category_id
-                   ").each do |p|
-      post_id = p["id"]
-      cooked = p["cooked"]
-      title = p["title"]
-      category = p["cat"]
-      SearchObserver.update_posts_index(post_id, cooked, title, category)
-
-      putc "."
-    end
-
-    puts
-    puts "Users:"
-    User.exec_sql("select id, name, username from users").each do |u|
-      id = u["id"]
-      name = u["name"]
-      username = u["username"]
-      SearchObserver.update_users_index(id, username, name)
-
-      putc "."
-    end
-
-    puts
-    puts "Categories"
-
-    Category.exec_sql("select id, name from categories").each do |c|
-      id = c["id"]
-      name = c["name"]
-      SearchObserver.update_categories_index(id, name)
-    end
-
-    puts
+    reindex_search(db)
   end
 end

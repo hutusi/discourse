@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PluginStoreRow < ActiveRecord::Base
 end
 
@@ -6,9 +8,9 @@ end
 # Table name: plugin_store_rows
 #
 #  id          :integer          not null, primary key
-#  plugin_name :string(255)      not null
-#  key         :string(255)      not null
-#  type_name   :string(255)      not null
+#  plugin_name :string           not null
+#  key         :string           not null
+#  type_name   :string           not null
 #  value       :text
 #
 # Indexes

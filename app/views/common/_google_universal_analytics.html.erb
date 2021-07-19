@@ -1,10 +1,12 @@
-<script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+<%= tag.meta id: 'data-ga-universal-analytics', data: {
+  tracking_code: SiteSetting.ga_universal_tracking_code,
+  json: ga_universal_json,
+  auto_link_domains: SiteSetting.ga_universal_auto_link_domains
+} %>
 
-  ga('create', '<%= SiteSetting.ga_universal_tracking_code %>', '<%= SiteSetting.ga_universal_domain_name.gsub(/^http(s)?:\/\//, '') %>');
-  ga('send', 'pageview');
-
-</script>
+<% if SiteSetting.ga_version == "v3_analytics" %>
+  <%= preload_script "google-universal-analytics-v3" %>
+<% elsif SiteSetting.ga_version == "v4_gtag" %>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=<%= SiteSetting.ga_universal_tracking_code %>"></script>
+  <%= preload_script "google-universal-analytics-v4" %>
+<% end %>

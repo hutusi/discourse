@@ -1,46 +1,107 @@
-require 'spec_helper'
-require_dependency 'jobs/base'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe Jobs::CloseTopic do
+  fab!(:admin) { Fabricate(:admin) }
 
-  let(:admin) { Fabricate.build(:admin) }
-
-  it 'closes a topic that is set to auto-close' do
-    topic = Fabricate.build(:topic, auto_close_at: Time.zone.now, user: admin)
-    topic.expects(:update_status).with('autoclosed', true, admin)
-    Topic.stubs(:find_by).returns(topic)
-    User.stubs(:find_by).returns(admin)
-    Jobs::CloseTopic.new.execute( topic_id: 123, user_id: 234 )
+  fab!(:topic) do
+    Fabricate(:topic_timer, user: admin).topic
   end
 
-  shared_examples_for "cases when CloseTopic does nothing" do
-    it 'does nothing to the topic' do
-      topic.expects(:update_status).never
-      Topic.stubs(:find_by).returns(topic)
-      User.stubs(:find_by).returns(admin)
-      Jobs::CloseTopic.new.execute( topic_id: 123, user_id: 234 )
+  it 'should be able to close a topic' do
+    freeze_time(61.minutes.from_now) do
+      described_class.new.execute(
+        topic_timer_id: topic.public_topic_timer.id,
+        state: true
+      )
+
+      expect(topic.reload.closed).to eq(true)
+
+      expect(Post.last.raw).to eq(I18n.t(
+        'topic_statuses.autoclosed_enabled_minutes', count: 61
+      ))
     end
   end
 
-  context 'when topic is not set to auto-close' do
-    subject(:topic) { Fabricate.build(:topic, auto_close_at: nil, user: admin) }
-    it_behaves_like 'cases when CloseTopic does nothing'
+  it "publishes to the topic message bus so the topic status reloads" do
+    MessageBus.expects(:publish).at_least_once
+    MessageBus.expects(:publish).with("/topic/#{topic.id}", reload_topic: true).once
+    freeze_time(61.minutes.from_now) do
+      described_class.new.execute(topic_timer_id: topic.public_topic_timer.id)
+    end
   end
 
-  context 'when user is not authorized to close topics' do
-    subject(:topic) { Fabricate.build(:topic, auto_close_at: 2.days.from_now, user: admin) }
-    before { Guardian.any_instance.stubs(:can_moderate?).returns(false) }
-    it_behaves_like 'cases when CloseTopic does nothing'
+  describe 'when trying to close a topic that has already been closed' do
+    it 'should delete the topic timer' do
+      freeze_time(topic.public_topic_timer.execute_at + 1.minute)
+
+      topic.update!(closed: true)
+
+      expect do
+        described_class.new.execute(
+          topic_timer_id: topic.public_topic_timer.id,
+          state: true
+        )
+      end.to change { TopicTimer.exists?(topic_id: topic.id) }.from(true).to(false)
+    end
   end
 
-  context 'the topic is already closed' do
-    subject(:topic) { Fabricate.build(:topic, auto_close_at: 2.days.from_now, user: admin, closed: true) }
-    it_behaves_like 'cases when CloseTopic does nothing'
+  describe 'when trying to close a topic that has been deleted' do
+    it 'should delete the topic timer' do
+      freeze_time(topic.public_topic_timer.execute_at + 1.minute)
+
+      topic.trash!
+
+      expect do
+        described_class.new.execute(
+          topic_timer_id: topic.public_topic_timer.id,
+          state: true
+        )
+      end.to change { TopicTimer.exists?(topic_id: topic.id) }.from(true).to(false)
+    end
   end
 
-  context 'the topic has been deleted' do
-    subject(:topic) { Fabricate.build(:deleted_topic, auto_close_at: 2.days.from_now, user: admin) }
-    it_behaves_like 'cases when CloseTopic does nothing'
-  end
+  describe 'when user is no longer authorized to close topics' do
+    fab!(:user) { Fabricate(:user) }
 
+    fab!(:topic) do
+      Fabricate(:topic_timer, user: user).topic
+    end
+
+    it 'should destroy the topic timer' do
+      freeze_time(topic.public_topic_timer.execute_at + 1.minute)
+
+      expect do
+        described_class.new.execute(
+          topic_timer_id: topic.public_topic_timer.id,
+          state: true
+        )
+      end.to change { TopicTimer.exists?(topic_id: topic.id) }.from(true).to(false)
+
+      expect(topic.reload.closed).to eq(false)
+    end
+
+    it "should reconfigure topic timer if category's topics are set to autoclose" do
+      category = Fabricate(:category,
+        auto_close_based_on_last_post: true,
+        auto_close_hours: 5
+      )
+
+      topic = Fabricate(:topic, category: category)
+      topic.public_topic_timer.update!(user: user)
+
+      freeze_time(topic.public_topic_timer.execute_at + 1.minute)
+
+      expect do
+        described_class.new.execute(
+          topic_timer_id: topic.public_topic_timer.id,
+          state: true
+        )
+      end.to change { topic.reload.public_topic_timer.user }.from(user).to(Discourse.system_user)
+        .and change { topic.public_topic_timer.id }
+
+      expect(topic.reload.closed).to eq(false)
+    end
+  end
 end

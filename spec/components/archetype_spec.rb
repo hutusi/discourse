@@ -1,6 +1,7 @@
 # encoding: utf-8
+# frozen_string_literal: true
 
-require 'spec_helper'
+require 'rails_helper'
 require 'archetype'
 
 describe Archetype do
@@ -8,11 +9,11 @@ describe Archetype do
   context 'default archetype' do
 
     it 'has an Archetype by default' do
-      Archetype.list.should be_present
+      expect(Archetype.list).to be_present
     end
 
     it 'has an id of default' do
-      Archetype.list.first.id.should == Archetype.default
+      expect(Archetype.list.first.id).to eq(Archetype.default)
     end
 
     context 'duplicate' do
@@ -23,7 +24,7 @@ describe Archetype do
       end
 
       it 'does not add the same archetype twice' do
-        Archetype.list.size.should == @old_size
+        expect(Archetype.list.size).to eq(@old_size)
       end
 
     end
@@ -35,11 +36,10 @@ describe Archetype do
     it 'has one more element' do
       @list = Archetype.list.dup
       Archetype.register('glados')
-      Archetype.list.size.should == @list.size + 1
-      Archetype.list.find {|a| a.id == 'glados'}.should be_present
+      expect(Archetype.list.size).to eq(@list.size + 1)
+      expect(Archetype.list.find { |a| a.id == 'glados' }).to be_present
     end
 
   end
 
 end
-

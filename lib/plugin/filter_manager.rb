@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Plugin
   class FilterManager
 
@@ -6,7 +8,7 @@ module Plugin
     end
 
     def register(name, &blk)
-      raise ArgumentException unless blk && blk.arity == 2
+      raise ArgumentError unless blk && blk.arity == 2
       filters = @map[name] ||= []
       filters << blk
     end

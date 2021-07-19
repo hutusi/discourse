@@ -1,10 +1,12 @@
-class CreateArchetypeOptions < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateArchetypeOptions < ActiveRecord::Migration[4.2]
   def change
     create_table :archetype_options do |t|
       t.references :archetype, null: false
       t.string :key, null: false
       t.integer :option_type, null: false
-      t.timestamps
+      t.timestamps null: false
     end
 
     add_index :archetype_options, :archetype_id

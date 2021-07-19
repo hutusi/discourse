@@ -1,26 +1,42 @@
+# frozen_string_literal: true
+
 class DraftSequence < ActiveRecord::Base
-  def self.next!(user,key)
+  def self.next!(user, key)
+    return nil if !user
+
     user_id = user
-    user_id = user.id unless user.class == Fixnum
-    h = { user_id: user_id, draft_key: key }
-    c = DraftSequence.find_by(h)
-    c ||= DraftSequence.new(h)
-    c.sequence ||= 0
-    c.sequence += 1
-    c.save
-    c.sequence
+    user_id = user.id unless user.is_a?(Integer)
+
+    return 0 if !User.human_user_id?(user_id)
+
+    sequence =
+      DB.query_single(<<~SQL, user_id: user_id, draft_key: key).first
+        INSERT INTO draft_sequences (user_id, draft_key, sequence)
+        VALUES (:user_id, :draft_key, 1)
+        ON CONFLICT (user_id, draft_key) DO
+        UPDATE
+        SET sequence = draft_sequences.sequence + 1
+        WHERE draft_sequences.user_id = :user_id
+        AND draft_sequences.draft_key = :draft_key
+        RETURNING sequence
+      SQL
+
+    DB.exec("DELETE FROM drafts WHERE user_id = :user_id AND draft_key = :draft_key AND sequence < :sequence", draft_key: key, user_id: user_id, sequence: sequence)
+
+    sequence
   end
 
   def self.current(user, key)
-    return nil unless user
+    return nil if !user
 
     user_id = user
-    user_id = user.id unless user.class == Fixnum
+    user_id = user.id unless user.is_a?(Integer)
+
+    return 0 if !User.human_user_id?(user_id)
 
     # perf critical path
-    r = exec_sql('select sequence from draft_sequences where user_id = ? and draft_key = ?', user_id, key).values
-
-    r.length.zero? ? 0 : r[0][0].to_i
+    r, _ = DB.query_single('select sequence from draft_sequences where user_id = ? and draft_key = ?', user_id, key)
+    r.to_i
   end
 end
 
@@ -30,8 +46,8 @@ end
 #
 #  id        :integer          not null, primary key
 #  user_id   :integer          not null
-#  draft_key :string(255)      not null
-#  sequence  :integer          not null
+#  draft_key :string           not null
+#  sequence  :bigint           not null
 #
 # Indexes
 #

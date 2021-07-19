@@ -1,4 +1,6 @@
-class AddPinnedGloballyToTopics < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddPinnedGloballyToTopics < ActiveRecord::Migration[4.2]
   def up
     add_column :topics, :pinned_globally, :boolean, null: false, default: false
     execute "UPDATE topics set pinned_globally = 't' where category_id = (

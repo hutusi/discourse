@@ -1,5 +1,6 @@
-require 'spec_helper'
-require_dependency 'plugin/metadata'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe Plugin::Metadata do
   context "parse" do
@@ -9,15 +10,47 @@ describe Plugin::Metadata do
 # about: about: my plugin
 # version: 0.1
 # authors: Frank Zappa
+# contact emails: frankz@example.com
+# url: http://discourse.org
+# required version: 1.3.0beta6+48
 
 some_ruby
 TEXT
 
-      metadata.name.should == "plugin-name"
-      metadata.about.should == "about: my plugin"
-      metadata.version.should == "0.1"
-      metadata.authors.should == "Frank Zappa"
+      expect(metadata.name).to eq("plugin-name")
+      expect(metadata.about).to eq("about: my plugin")
+      expect(metadata.version).to eq("0.1")
+      expect(metadata.authors).to eq("Frank Zappa")
+      expect(metadata.contact_emails).to eq("frankz@example.com")
+      expect(metadata.url).to eq("http://discourse.org")
+      expect(metadata.required_version).to eq("1.3.0beta6+48")
     end
+  end
+
+  def official(name)
+    metadata = Plugin::Metadata.parse <<TEXT
+# name: #{name}
+TEXT
+
+    expect(metadata.official?).to eq(true)
+  end
+
+  def unofficial(name)
+    metadata = Plugin::Metadata.parse <<TEXT
+# name: #{name}
+TEXT
+
+    expect(metadata.official?).to eq(false)
+  end
+
+  it "correctly detects official vs unofficial plugins" do
+    official("customer-flair")
+    official("discourse-adplugin")
+    official("discourse-akismet")
+    official("discourse-cakeday")
+    official("Canned Replies")
+    official("discourse-data-explorer")
+    unofficial("babble")
   end
 
 end

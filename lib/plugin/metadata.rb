@@ -1,9 +1,89 @@
+# frozen_string_literal: true
+
 # loaded really early
 module Plugin; end
 
 class Plugin::Metadata
-  FIELDS ||= [:name, :about, :version, :authors]
-  attr_accessor *FIELDS
+
+  OFFICIAL_PLUGINS ||= Set.new([
+    # TODO: Remove this after everyone upgraded `discourse-canned-replies`
+    # to the renamed version.
+    "Canned Replies",
+    "customer-flair",
+    "discourse-adplugin",
+    "discourse-affiliate",
+    "discourse-akismet",
+    "discourse-algolia",
+    "discourse-assign",
+    "discourse-auto-deactivate",
+    "discourse-bbcode",
+    "discourse-bbcode-color",
+    "discourse-cakeday",
+    "discourse-canned-replies",
+    "discourse-calendar",
+    "discourse-categories-suppressed",
+    "discourse-characters-required",
+    "discourse-chat-integration",
+    "discourse-checklist",
+    "discourse-code-review",
+    "discourse-crowd",
+    "discourse-data-explorer",
+    "discourse-details",
+    "discourse-docs",
+    "discourse-encrypt",
+    "discourse-footnote",
+    "discourse-github",
+    "discourse-gradle-issue",
+    "discourse-graphviz",
+    "discourse-invite-tokens",
+    "discourse-local-dates",
+    "discourse-logster-rate-limit-checker",
+    "discourse-logster-transporter",
+    "discourse-math",
+    "discourse-moderator-attention",
+    "discourse-narrative-bot",
+    "discourse-nginx-performance-report",
+    "discourse-no-bump",
+    "discourse-oauth2-basic",
+    "discourse-patreon",
+    "discourse-perspective-api",
+    "discourse-plugin-discord-auth",
+    "discourse-plugin-linkedin-auth",
+    "discourse-plugin-office365-auth",
+    "discourse-steam-login",
+    "discourse-login-with-amazon",
+    "discourse-policy",
+    "discourse-presence",
+    "discourse-prometheus",
+    "discourse-prometheus-alert-receiver",
+    "discourse-push-notifications",
+    "discourse-saved-searches",
+    "discourse-signatures",
+    "discourse-sitemap",
+    "discourse-solved",
+    "discourse-spoiler-alert",
+    "discourse-subscriptions",
+    "discourse-user-notes",
+    "styleguide",
+    "discourse-teambuild",
+    "discourse-tooltips",
+    "discourse-translator",
+    "discourse-user-card-badges",
+    "discourse-voting",
+    "discourse-yearly-review",
+    "discourse-openid-connect",
+    "discourse-restricted-replies",
+    "discourse-rss-polling",
+    "discourse-zendesk-plugin",
+    "docker_manager",
+    "lazy-yt",
+    "poll",
+    "discourse-fontawesome-pro",
+    "discourse-staff-alias",
+  ])
+
+  FIELDS ||= [:name, :about, :version, :authors, :contact_emails, :url, :required_version, :transpile_js]
+  attr_accessor(*FIELDS)
 
   def self.parse(text)
     metadata = self.new
@@ -11,6 +91,10 @@ class Plugin::Metadata
       break unless metadata.parse_line(line)
     end
     metadata
+  end
+
+  def official?
+    OFFICIAL_PLUGINS.include?(name)
   end
 
   def parse_line(line)
@@ -21,10 +105,10 @@ class Plugin::Metadata
       attribute, *description = line[1..-1].split(":")
 
       description = description.join(":")
-      attribute = attribute.strip.to_sym
+      attribute = attribute.strip.gsub(/ /, '_').to_sym
 
       if FIELDS.include?(attribute)
-        self.send("#{attribute}=", description.strip)
+        self.public_send("#{attribute}=", description.strip)
       end
     end
 

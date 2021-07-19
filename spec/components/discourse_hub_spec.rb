@@ -1,106 +1,105 @@
-require 'spec_helper'
-require_dependency 'discourse_hub'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 describe DiscourseHub do
-  describe '#username_available?' do
-    it 'should return true when username is available and no suggestion' do
-      RestClient.stubs(:get).returns( {success: 'OK', available: true}.to_json )
-      DiscourseHub.username_available?('MacGyver').should == [true, nil]
-    end
-
-    it 'should return false and a suggestion when username is not available' do
-      RestClient.stubs(:get).returns( {success: 'OK', available: false, suggestion: 'MacGyver1'}.to_json )
-      available, suggestion = DiscourseHub.username_available?('MacGyver')
-      available.should be_false
-      suggestion.should_not be_nil
-    end
-
-    # How to handle connect errors? timeout? 401? 403? 429?
-  end
-
-  describe '#username_match?' do
-    it 'should return true when it is a match and no suggestion' do
-      RestClient.stubs(:get).returns( {success: 'OK', match: true, available: false}.to_json )
-      DiscourseHub.username_match?('MacGyver', 'macg@example.com').should == [true, false, nil]
-    end
-
-    it 'should return false and a suggestion when it is not a match and the username is not available' do
-      RestClient.stubs(:get).returns( {success: 'OK', match: false, available: false, suggestion: 'MacGyver1'}.to_json )
-      match, available, suggestion = DiscourseHub.username_match?('MacGyver', 'macg@example.com')
-      match.should be_false
-      available.should be_false
-      suggestion.should_not be_nil
-    end
-
-    it 'should return false and no suggestion when it is not a match and the username is available' do
-      RestClient.stubs(:get).returns( {success: 'OK', match: false, available: true}.to_json )
-      match, available, suggestion = DiscourseHub.username_match?('MacGyver', 'macg@example.com')
-      match.should be_false
-      available.should be_true
-      suggestion.should be_nil
-    end
-  end
-
-  describe '#register_username' do
-    it 'should return true when registration succeeds' do
-      RestClient.stubs(:post).returns( {success: 'OK'}.to_json )
-      DiscourseHub.register_username('MacGyver', 'macg@example.com').should be_true
-    end
-
-    it 'should return raise an exception when registration fails' do
-      RestClient.stubs(:post).returns( {failed: -200}.to_json )
-      expect {
-        DiscourseHub.register_username('MacGyver', 'macg@example.com')
-      }.to raise_error(DiscourseHub::UsernameUnavailable)
-    end
-  end
-
-  describe '#unregister_username' do
-    it 'should return true when unregister succeeds' do
-      RestClient.stubs(:delete).returns( {success: 'OK'}.to_json )
-      DiscourseHub.unregister_username('byebye').should be_true
-    end
-
-    it 'should return false when unregister fails' do
-      RestClient.stubs(:delete).returns( {failed: -20}.to_json )
-      DiscourseHub.unregister_username('byebye').should be_false
-    end
-  end
-
-  describe '#discourse_version_check' do
+  describe '.discourse_version_check' do
     it 'should return just return the json that the hub returns' do
-      hub_response = {'success' => 'OK', 'latest_version' => '0.8.1', 'critical_updates' => false}
-      RestClient.stubs(:get).returns( hub_response.to_json )
-      DiscourseHub.discourse_version_check.should == hub_response
+      hub_response = { 'success' => 'OK', 'latest_version' => '0.8.1', 'critical_updates' => false }
+
+      stub_request(:get, (ENV['HUB_BASE_URL'] || "http://local.hub:3000/api") + "/version_check").
+        with(query: DiscourseHub.version_check_payload).
+        to_return(status: 200, body: hub_response.to_json)
+
+      expect(DiscourseHub.discourse_version_check).to eq(hub_response)
     end
   end
 
-  describe '#change_username' do
-    it 'should return true when username is changed successfully' do
-      RestClient.stubs(:put).returns( {success: 'OK'}.to_json )
-      DiscourseHub.change_username('MacGyver', 'MacG').should be_true
+  describe '.version_check_payload' do
+
+    describe 'when Discourse Hub has not fetched stats since past 7 days' do
+      it 'should include stats' do
+        DiscourseHub.stats_fetched_at = 8.days.ago
+        json = JSON.parse(DiscourseHub.version_check_payload.to_json)
+
+        expect(json["topic_count"]).to be_present
+        expect(json["post_count"]).to be_present
+        expect(json["user_count"]).to be_present
+        expect(json["topics_7_days"]).to be_present
+        expect(json["topics_30_days"]).to be_present
+        expect(json["posts_7_days"]).to be_present
+        expect(json["posts_30_days"]).to be_present
+        expect(json["users_7_days"]).to be_present
+        expect(json["users_30_days"]).to be_present
+        expect(json["active_users_7_days"]).to be_present
+        expect(json["active_users_30_days"]).to be_present
+        expect(json["like_count"]).to be_present
+        expect(json["likes_7_days"]).to be_present
+        expect(json["likes_30_days"]).to be_present
+        expect(json["installed_version"]).to be_present
+        expect(json["branch"]).to be_present
+      end
     end
 
-    it 'should return raise UsernameUnavailable when username is not available' do
-      RestClient.stubs(:put).returns( {failed: -200}.to_json )
-      expect {
-        DiscourseHub.change_username('MacGyver', 'MacG')
-      }.to raise_error(DiscourseHub::UsernameUnavailable)
+    describe 'when Discourse Hub has fetched stats in past 7 days' do
+      it 'should not include stats' do
+        DiscourseHub.stats_fetched_at = 2.days.ago
+        json = JSON.parse(DiscourseHub.version_check_payload.to_json)
+
+        expect(json["topic_count"]).not_to be_present
+        expect(json["post_count"]).not_to be_present
+        expect(json["user_count"]).not_to be_present
+        expect(json["like_count"]).not_to be_present
+        expect(json["likes_7_days"]).not_to be_present
+        expect(json["likes_30_days"]).not_to be_present
+        expect(json["installed_version"]).to be_present
+        expect(json["branch"]).to be_present
+      end
     end
 
+    describe 'when send_anonymize_stats is disabled' do
+      describe 'when Discourse Hub has not fetched stats for the past year' do
+        it 'should not include stats' do
+          DiscourseHub.stats_fetched_at = 1.year.ago
+          SiteSetting.share_anonymized_statistics = false
+          json = JSON.parse(DiscourseHub.version_check_payload.to_json)
 
-    # it 'should return raise UsernameUnavailable when username does not belong to this forum' do
-    #   RestClient.stubs(:put).returns( {failed: -13}.to_json )
-    #   expect {
-    #      DiscourseHub.change_username('MacGyver', 'MacG')
-    #   }.to raise_error(DiscourseHub::ActionForbidden)
-    # end
+          expect(json["topic_count"]).not_to be_present
+          expect(json["post_count"]).not_to be_present
+          expect(json["user_count"]).not_to be_present
+          expect(json["like_count"]).not_to be_present
+          expect(json["likes_7_days"]).not_to be_present
+          expect(json["likes_30_days"]).not_to be_present
+          expect(json["installed_version"]).to be_present
+          expect(json["branch"]).to be_present
+        end
+      end
+    end
+  end
 
-    # it 'should return raise UsernameUnavailable when username does not belong to this forum' do
-    #   RestClient.stubs(:put).returns( {failed: -13}.to_json )
-    #   expect {
-    #     DiscourseHub.change_username('MacGyver', 'MacG')
-    #   }.to raise_error(DiscourseHub::ActionForbidden)
-    # end
+  describe '.collection_action' do
+    before do
+      @orig_logger = Rails.logger
+      Rails.logger = @fake_logger = FakeLogger.new
+    end
+
+    after do
+      Rails.logger = @orig_logger
+    end
+
+    it 'should log correctly on error' do
+      stub_request(:get, (ENV['HUB_BASE_URL'] || "http://local.hub:3000/api") + '/test').
+        to_return(status: 500, body: "", headers: {})
+
+      DiscourseHub.collection_action(:get, '/test')
+
+      expect(Rails.logger.warnings).to eq([
+        DiscourseHub.response_status_log_message('/test', 500),
+      ])
+
+      expect(Rails.logger.errors).to eq([
+        DiscourseHub.response_body_log_message("")
+      ])
+    end
   end
 end

@@ -1,4 +1,5 @@
-require_dependency 'plugin/filter_manager'
+# frozen_string_literal: true
+
 # this concept is borrowed straight out of wordpress
 module Plugin
   class Filter

@@ -1,9 +1,10 @@
+# frozen_string_literal: true
+
 require 'image_sizer'
-require_dependency 'system_message'
 
 module Jobs
 
-  class SendSystemMessage < Jobs::Base
+  class SendSystemMessage < ::Jobs::Base
 
     def execute(args)
       raise Discourse::InvalidParameters.new(:user_id) unless args[:user_id].present?
@@ -13,7 +14,7 @@ module Jobs
       return if user.blank?
 
       system_message = SystemMessage.new(user)
-      system_message.create(args[:message_type])
+      system_message.create(args[:message_type], args[:message_options]&.symbolize_keys || {})
     end
 
   end

@@ -1,0 +1,143 @@
+body.crawler {
+  > header {
+    width: 100%;
+    top: 0;
+    z-index: z("max");
+    background-color: #fff;
+    padding: 10px;
+    box-shadow: none;
+    border-bottom: 1px solid var(--primary-low-mid);
+    box-sizing: border-box;
+  }
+
+  .header-buttons {
+    display: none;
+  }
+
+  div#main-outlet {
+    div.post {
+      word-break: break-word;
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+    }
+  }
+
+  .topic-list {
+    margin-bottom: 1em;
+    @media (max-width: 850px) {
+      td {
+        word-break: break-all;
+        &.posters {
+          a:not(:last-of-type) {
+            display: none;
+          }
+          a:last-of-type {
+            display: block;
+          }
+        }
+      }
+
+      td,
+      th {
+        &.views {
+          display: none;
+        }
+      }
+
+      .link-top-line {
+        a.title {
+          padding: 0;
+        }
+      }
+
+      .link-bottom-line {
+        margin-top: 0.25em;
+      }
+    }
+  }
+
+  footer {
+    margin-top: 4em;
+  }
+
+  .topic-category {
+    display: inline;
+  }
+
+  .discourse-tags {
+    color: var(--primary-medium);
+  }
+}
+
+.noscript-footer-nav {
+  clear: both;
+  margin-top: 4em;
+  a {
+    margin-right: 0.25em;
+    white-space: nowrap;
+  }
+}
+
+#noscript-footer {
+  padding: 0 10px;
+  text-align: center;
+}
+
+.crawler-post {
+  margin-top: 1em;
+  margin-bottom: 2em;
+  padding-top: 1.5em;
+  border-top: 1px solid var(--primary-low);
+}
+
+.crawler-post-meta {
+  margin-bottom: 1em;
+  .creator {
+    word-break: break-all;
+    a {
+      font-weight: bold;
+    }
+    @include breakpoint(tablet) {
+      display: inline-block;
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+.crawler-post-infos {
+  color: var(--primary-high);
+  display: inline-block;
+  @include breakpoint(tablet, min-width) {
+    float: right;
+  }
+  [itemprop="position"] {
+    float: left;
+    margin-right: 0.5em;
+  }
+}
+
+.crawler-linkback-list {
+  margin-top: 1em;
+  a {
+    display: block;
+    padding: 0.5em 0;
+    border-top: 1px solid var(--primary-low);
+  }
+}
+
+.crawler-nav {
+  margin: 1em 0;
+  ul {
+    margin: 0;
+    list-style-type: none;
+  }
+  li {
+    display: inline-block;
+  }
+  a {
+    display: inline-block;
+    padding: 0.5em 1em 0.5em 0;
+  }
+}

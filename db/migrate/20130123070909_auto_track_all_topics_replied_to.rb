@@ -1,4 +1,6 @@
-class AutoTrackAllTopicsRepliedTo < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AutoTrackAllTopicsRepliedTo < ActiveRecord::Migration[4.2]
   def up
     execute 'update topic_users set notification_level = 2, notifications_reason_id = 4
       from posts p

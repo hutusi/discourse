@@ -1,4 +1,6 @@
-class MakePositionNullableInCategories < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class MakePositionNullableInCategories < ActiveRecord::Migration[4.2]
   def up
     change_column :categories, :position, :integer, null: true
   end

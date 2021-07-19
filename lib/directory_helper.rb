@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module DirectoryHelper
 
   def tmp_directory(prefix)
     directory_cache[prefix] ||= begin
-      f = File.join( Rails.root, 'tmp', Time.now.strftime("#{prefix}%Y%m%d%H%M%S") )
+      f = File.join(Rails.root, 'tmp', Time.now.strftime("#{prefix}%Y%m%d%H%M%S"))
       FileUtils.mkdir_p(f) unless Dir[f].present?
       f
     end

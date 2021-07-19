@@ -1,11 +1,13 @@
-class CreatePostActions < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreatePostActions < ActiveRecord::Migration[4.2]
   def up
     create_table :post_actions do |t|
       t.integer :post_id, null: false
       t.integer :user_id, null: false
-      t.integer :post_action_type_id, null:false
+      t.integer :post_action_type_id, null: false
       t.datetime :deleted_at
-      t.timestamps
+      t.timestamps null: false
     end
 
     add_index :post_actions, ["post_id"]

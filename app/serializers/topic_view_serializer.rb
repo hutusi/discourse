@@ -1,111 +1,107 @@
-require_dependency 'pinned_check'
+# frozen_string_literal: true
 
 class TopicViewSerializer < ApplicationSerializer
   include PostStreamSerializerMixin
+  include SuggestedTopicsMixin
+  include TopicTagsMixin
+  include ApplicationHelper
 
-  # These attributes will be delegated to the topic
-  def self.topic_attributes
-    [:id,
-     :title,
-     :fancy_title,
-     :posts_count,
-     :created_at,
-     :views,
-     :reply_count,
-     :participant_count,
-     :like_count,
-     :last_posted_at,
-     :visible,
-     :closed,
-     :archived,
-     :has_summary,
-     :archetype,
-     :slug,
-     :category_id,
-     :word_count,
-     :deleted_at]
+  def self.attributes_from_topic(*list)
+    [list].flatten.each do |attribute|
+      attributes(attribute)
+      class_eval %{def #{attribute}
+        object.topic.#{attribute}
+      end}
+    end
   end
 
-  attributes :draft,
-             :draft_key,
-             :draft_sequence,
-             :starred,
-             :posted,
-             :unpinned,
-             :pinned_globally,
-             :pinned,    # Is topic pinned and viewer hasn't cleared the pin?
-             :pinned_at, # Ignores clear pin
-             :details,
-             :highest_post_number,
-             :last_read_post_number,
-             :deleted_by,
-             :actions_summary,
-             :expandable_first_post
+  attributes_from_topic(
+    :id,
+    :title,
+    :fancy_title,
+    :posts_count,
+    :created_at,
+    :views,
+    :reply_count,
+    :like_count,
+    :last_posted_at,
+    :visible,
+    :closed,
+    :archived,
+    :has_summary,
+    :archetype,
+    :slug,
+    :category_id,
+    :word_count,
+    :deleted_at,
+    :user_id,
+    :featured_link,
+    :featured_link_root_domain,
+    :pinned_globally,
+    :pinned_at,
+    :pinned_until,
+    :image_url,
+    :slow_mode_seconds
+  )
 
-  # Define a delegator for each attribute of the topic we want
-  attributes(*topic_attributes)
-  topic_attributes.each do |ta|
-    class_eval %{def #{ta}
-      object.topic.#{ta}
-    end}
-  end
+  attributes(
+    :draft,
+    :draft_key,
+    :draft_sequence,
+    :posted,
+    :unpinned,
+    :pinned,
+    :current_post_number,
+    :highest_post_number,
+    :last_read_post_number,
+    :last_read_post_id,
+    :deleted_by,
+    :has_deleted,
+    :actions_summary,
+    :expandable_first_post,
+    :is_warning,
+    :chunk_size,
+    :bookmarked,
+    :bookmarked_posts,
+    :message_archived,
+    :topic_timer,
+    :unicode_title,
+    :message_bus_last_id,
+    :participant_count,
+    :destination_category_id,
+    :pm_with_non_human_user,
+    :queued_posts_count,
+    :show_read_indicator,
+    :requested_group_name,
+    :thumbnails,
+    :user_last_posted_at,
+    :is_shared_draft,
+    :slow_mode_enabled_until
+  )
 
-  # TODO: Split off into proper object / serializer
+  has_one :details, serializer: TopicViewDetailsSerializer, root: false, embed: :objects
+  has_many :pending_posts, serializer: TopicPendingPostSerializer, root: false, embed: :objects
+
+  has_one :published_page, embed: :objects
+
   def details
-    result = {
-      auto_close_at: object.topic.auto_close_at,
-      created_by: BasicUserSerializer.new(object.topic.user, scope: scope, root: false),
-      last_poster: BasicUserSerializer.new(object.topic.last_poster, scope: scope, root: false)
-    }
+    object
+  end
 
-    if object.topic.allowed_users.present?
-      result[:allowed_users] = object.topic.allowed_users.map do |user|
-        BasicUserSerializer.new(user, scope: scope, root: false)
-      end
-    end
+  def message_bus_last_id
+    object.message_bus_last_id
+  end
 
-    if object.topic.allowed_groups.present?
-      result[:allowed_groups] = object.topic.allowed_groups.map do |ag|
-        BasicGroupSerializer.new(ag, scope: scope, root: false)
-      end
-    end
+  def chunk_size
+    object.chunk_size
+  end
 
-    if object.post_counts_by_user.present?
-      result[:participants] = object.post_counts_by_user.map do |pc|
-        TopicPostCountSerializer.new({user: object.participants[pc[0]], post_count: pc[1]}, scope: scope, root: false)
-      end
-    end
+  def is_warning
+    object.personal_message && object.topic.subtype == TopicSubtype.moderator_warning
+  end
 
-
-    if object.suggested_topics.try(:topics).present?
-      result[:suggested_topics] = object.suggested_topics.topics.map do |user|
-        SuggestedTopicSerializer.new(user, scope: scope, root: false)
-      end
-    end
-
-    if object.links.present?
-      result[:links] = object.links.map do |user|
-        TopicLinkSerializer.new(user, scope: scope, root: false)
-      end
-    end
-
-    if has_topic_user?
-      result[:notification_level] = object.topic_user.notification_level
-      result[:notifications_reason_id] = object.topic_user.notifications_reason_id
-    else
-      result[:notification_level] = TopicUser.notification_levels[:regular]
-    end
-
-    result[:can_move_posts] = true if scope.can_move_posts?(object.topic)
-    result[:can_edit] = true if scope.can_edit?(object.topic)
-    result[:can_delete] = true if scope.can_delete?(object.topic)
-    result[:can_recover] = true if scope.can_recover_topic?(object.topic)
-    result[:can_remove_allowed_users] = true if scope.can_remove_allowed_users?(object.topic)
-    result[:can_invite_to] = true if scope.can_invite_to?(object.topic)
-    result[:can_create_post] = true if scope.can_create?(Post, object.topic)
-    result[:can_reply_as_new_topic] = true if scope.can_reply_as_new_topic?(object.topic)
-    result[:can_flag_topic] = actions_summary.any? { |a| a[:can_act] }
-    result
+  def include_is_warning?
+    is_warning
   end
 
   def draft
@@ -120,6 +116,14 @@ class TopicViewSerializer < ApplicationSerializer
     object.draft_sequence
   end
 
+  def include_message_archived?
+    object.personal_message
+  end
+
+  def message_archived
+    object.topic.message_archived?(scope.user)
+  end
+
   def deleted_by
     BasicUserSerializer.new(object.topic.deleted_by, root: false).as_json
   end
@@ -129,17 +133,26 @@ class TopicViewSerializer < ApplicationSerializer
     object.topic_user.present?
   end
 
-  def starred
-    object.topic_user.starred?
+  def current_post_number
+    object.current_post_number
   end
-  alias_method :include_starred?, :has_topic_user?
+
+  def include_current_post_number?
+    object.current_post_number.present?
+  end
 
   def highest_post_number
     object.highest_post_number
   end
 
+  def last_read_post_id
+    return nil unless last_read_post_number
+    object.filtered_post_id(last_read_post_number)
+  end
+  alias_method :include_last_read_post_id?, :has_topic_user?
+
   def last_read_post_number
-    object.topic_user.last_read_post_number
+    @last_read_post_number ||= object.topic_user.last_read_post_number
   end
   alias_method :include_last_read_post_number?, :has_topic_user?
 
@@ -147,10 +160,6 @@ class TopicViewSerializer < ApplicationSerializer
     object.topic_user.posted?
   end
   alias_method :include_posted?, :has_topic_user?
-
-  def pinned_globally
-    object.topic.pinned_globally
-  end
 
   def pinned
     PinnedCheck.pinned?(object.topic, object.topic_user)
@@ -160,21 +169,16 @@ class TopicViewSerializer < ApplicationSerializer
     PinnedCheck.unpinned?(object.topic, object.topic_user)
   end
 
-  def pinned_at
-    object.topic.pinned_at
+  def actions_summary
+    object.actions_summary
   end
 
-  def actions_summary
-    result = []
-    return [] unless post = object.posts.try(:first)
-    PostActionType.topic_flag_types.each do |sym, id|
-      result << { id: id,
-                  count: 0,
-                  hidden: false,
-                  can_act: scope.post_can_act?(post, sym)}
-      # TODO: other keys? :can_clear_flags, :acted, :can_undo
-    end
-    result
+  def has_deleted
+    object.has_deleted?
+  end
+
+  def include_has_deleted?
+    object.guardian.can_see_deleted_posts?
   end
 
   def expandable_first_post
@@ -185,4 +189,114 @@ class TopicViewSerializer < ApplicationSerializer
     object.topic.expandable_first_post?
   end
 
+  def bookmarked
+    object.has_bookmarks?
+  end
+
+  def bookmarked_posts
+    object.bookmarked_posts
+  end
+
+  def topic_timer
+    TopicTimerSerializer.new(object.topic.public_topic_timer, root: false)
+  end
+
+  def include_featured_link?
+    SiteSetting.topic_featured_link_enabled
+  end
+
+  def include_featured_link_root_domain?
+    SiteSetting.topic_featured_link_enabled && object.topic.featured_link
+  end
+
+  def include_unicode_title?
+    object.topic.title.match?(/:[\w\-+]+:/)
+  end
+
+  def unicode_title
+    Emoji.gsub_emoji_to_unicode(object.topic.title)
+  end
+
+  def include_pm_with_non_human_user?
+    object.personal_message
+  end
+
+  def pm_with_non_human_user
+    object.topic.pm_with_non_human_user?
+  end
+
+  def participant_count
+    object.participant_count
+  end
+
+  def destination_category_id
+    object.topic.shared_draft.category_id
+  end
+
+  def include_destination_category_id?
+    scope.can_see_shared_draft? && SiteSetting.shared_drafts_enabled? && object.topic.shared_draft.present?
+  end
+
+  def is_shared_draft
+    include_destination_category_id?
+  end
+
+  alias_method :include_is_shared_draft?, :include_destination_category_id?
+
+  def include_pending_posts?
+    scope.authenticated? && object.queued_posts_enabled
+  end
+
+  def queued_posts_count
+    object.queued_posts_count
+  end
+
+  def include_queued_posts_count?
+    scope.is_staff? && object.queued_posts_enabled
+  end
+
+  def show_read_indicator
+    object.show_read_indicator?
+  end
+
+  def requested_group_name
+    if scope&.user
+      group = Group
+        .joins('JOIN group_users ON groups.id = group_users.group_id')
+        .find_by(
+          id: object.topic.custom_fields['requested_group_id'].to_i,
+          group_users: { user_id: scope.user.id, owner: true }
+        )
+
+      group.name if group
+    end
+  end
+
+  def include_requested_group_name?
+    object.personal_message
+  end
+
+  def include_published_page?
+    SiteSetting.enable_page_publishing? &&
+      scope.is_staff? &&
+      object.published_page.present? &&
+      !SiteSetting.secure_media
+  end
+
+  def thumbnails
+    extra_sizes = ThemeModifierHelper.new(request: scope.request).topic_thumbnail_sizes
+    object.topic.thumbnail_info(enqueue_if_missing: true, extra_sizes: extra_sizes)
+  end
+
+  def user_last_posted_at
+    object.topic_user.last_posted_at
+  end
+
+  def include_user_last_posted_at?
+    has_topic_user? && object.topic.slow_mode_seconds.to_i > 0
+  end
+
+  def slow_mode_enabled_until
+    object.topic.slow_mode_topic_timer&.execute_at
+  end
 end

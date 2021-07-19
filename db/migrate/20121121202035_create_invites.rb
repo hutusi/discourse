@@ -1,4 +1,6 @@
-class CreateInvites < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class CreateInvites < ActiveRecord::Migration[4.2]
   def change
     create_table :invites do |t|
       t.string :invite_key, null: false, limit: 32
@@ -6,7 +8,7 @@ class CreateInvites < ActiveRecord::Migration
       t.integer :invited_by_id, null: false
       t.integer :user_id, null: true
       t.timestamp :redeemed_at, null: true
-      t.timestamps
+      t.timestamps null: false
     end
 
     add_index :invites, :invite_key, unique: true

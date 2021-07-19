@@ -1,19 +1,27 @@
-class ForumsController < ApplicationController
+# frozen_string_literal: true
 
-  skip_before_filter :check_xhr, only: [:status]
-  skip_before_filter :authorize_mini_profiler, only: [:status]
-  skip_before_filter :redirect_to_login_if_required, only: [:status]
+require "read_only_header"
+
+class ForumsController < ActionController::Base
+  include ReadOnlyHeader
+
+  before_action :check_readonly_mode
+  after_action  :add_readonly_header
 
   def status
-    if $shutdown
-      render text: 'shutting down', status: 500
-    else
-      render text: 'ok'
+    if params[:cluster]
+      if GlobalSetting.cluster_name.nil?
+        return render plain: "cluster name not configured", status: 500
+      elsif GlobalSetting.cluster_name != params[:cluster]
+        return render plain: "cluster name does not match", status: 500
+      end
     end
-  end
 
-  def error
-    raise "WAT - #{Time.now.to_s}"
+    if $shutdown # rubocop:disable Style/GlobalVars
+      render plain: "shutting down", status: (params[:shutdown_ok] ? 200 : 500)
+    else
+      render plain: "ok"
+    end
   end
 
 end

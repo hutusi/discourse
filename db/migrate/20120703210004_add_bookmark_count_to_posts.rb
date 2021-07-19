@@ -1,4 +1,6 @@
-class AddBookmarkCountToPosts < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddBookmarkCountToPosts < ActiveRecord::Migration[4.2]
   def change
     add_column :posts, :bookmark_count, :integer, default: 0, null: false
     add_column :forum_threads, :bookmark_count, :integer, default: 0, null: false

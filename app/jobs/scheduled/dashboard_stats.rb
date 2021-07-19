@@ -1,16 +1,16 @@
+# frozen_string_literal: true
+
 module Jobs
-  class DashboardStats < Jobs::Scheduled
+  class DashboardStats < ::Jobs::Scheduled
     every 30.minutes
 
     def execute(args)
-      stats_json = AdminDashboardData.fetch_stats.as_json
-
-      # Add some extra time to the expiry so that the next job run has plenty of time to
-      # finish before previous cached value expires.
-      $redis.setex AdminDashboardData.stats_cache_key, (AdminDashboardData.recalculate_interval + 5).minutes, stats_json.to_json
-
-      stats_json
+      problems_started_at = AdminDashboardData.problems_started_at
+      if problems_started_at && problems_started_at < 2.days.ago
+        # If there have been problems reported on the dashboard for a while,
+        # send a message to admins no more often than once per week.
+        GroupMessage.create(Group[:admins].name, :dashboard_problems, limit_once_per: 7.days.to_i)
+      end
     end
-
   end
 end

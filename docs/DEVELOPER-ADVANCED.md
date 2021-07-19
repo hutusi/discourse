@@ -1,129 +1,84 @@
 # Discourse Advanced Developer Install Guide
 
-This guide is aimed at advanced Rails developers who have installed their own Rails apps before. If you are new to Rails, you are likely much better off with our **[Discourse Vagrant Developer Guide](VAGRANT.md)**.
+This guide is aimed at advanced Rails developers who have installed their own Rails apps before.
 
 Note: If you are developing on a Mac, you will probably want to look at [these instructions](DEVELOPMENT-OSX-NATIVE.md) as well.
 
-## First Steps
+# Preparing a fresh Ubuntu install
 
-1. Install and configure PostgreSQL 9.1+. Make sure that the server's messages language is English; this is [required](https://github.com/rails/rails/blob/3006c59bc7a50c925f6b744447f1d94533a64241/activerecord/lib/active_record/connection_adapters/postgresql_adapter.rb#L1140) by the ActiveRecord Postgres adapter.
-2. Install and configure Redis 2+.
-3. Install libxml2, g++, and make.
-4. Install Ruby 1.9.3 and Bundler.
-5. Clone the project and bundle.
-6. Copy `config/database.yml.development-sample` to `config/database.yml`. Copy `config/redis.yml.sample` to `config/redis.yml`. Edit the files to point to your postgres and redis instances.
-7. Create the "vagrant" user and the development and test databases in postgres. See the postgres section in "Building your own Vagrant VM", below.
+To get your Ubuntu 16.04 or 18.04 LTS install up and running to develop Discourse and Discourse plugins follow the commands below. We assume an English install of Ubuntu.
 
+    # Basics
+    whoami > /tmp/username
+    sudo add-apt-repository ppa:chris-lea/redis-server
+    sudo apt-get -yqq update
+    sudo apt-get -yqq install software-properties-common vim curl expect debconf-utils git-core build-essential zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libpcre3 libpcre3-dev imagemagick redis-server advancecomp jhead jpegoptim libjpeg-turbo-progs optipng pngcrush pngquant gnupg2
 
-## Before you start Rails
+    # Ruby
+    curl -sSL https://rvm.io/mpapis.asc | gpg2 --import -
+    curl -sSL https://rvm.io/pkuczynski.asc | gpg2 --import -
+    curl -sSL https://get.rvm.io | bash -s stable
+    echo 'gem: --no-document' >> ~/.gemrc
 
-1. `bundle install`
-2. `bundle exec rake db:migrate db:test:prepare db:seed_fu`
-4. Try running the specs: `bundle exec rake autospec`
-5. `bundle exec rails server`
+    # exit the terminal and open it again to activate RVM
 
-You should now be able to connect to rails on [http://localhost:3000](http://localhost:3000) - try it out! The seed data includes a pinned topic that explains how to get an admin account, so start there! Happy hacking!
+    rvm install 2.6.2
+    rvm --default use 2.6.2 # If this error out check https://rvm.io/integration/gnome-terminal
+    gem install bundler mailcatcher rake
 
+    # Download and install postgresql-10 from https://wiki.postgresql.org/wiki/Apt
 
-# Building your own Vagrant VM
+    # Postgresql
+    sudo -u postgres -i
+    createuser --superuser -Upostgres $(cat /tmp/username)
+    psql -c "ALTER USER $(cat /tmp/username) WITH PASSWORD 'password';"
+    exit
 
-Here are the steps we used to create the **[Vagrant Virtual Machine](VAGRANT.md)**. They might be useful if you plan on setting up an environment from scratch on Linux:
+    # Node
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
 
+    # exit the terminal and open it again to activate NVM
 
-## Base box
-
-Vagrant version 1.1.2. With this Vagrantfile:
-
-    Vagrant::Config.run do |config|
-      config.vm.box     = 'precise32'
-      config.vm.box_url = 'http://files.vagrantup.com/precise32.box'
-      config.vm.network :hostonly, '192.168.10.200'
-
-      if RUBY_PLATFORM =~ /darwin/
-        config.vm.share_folder("v-root", "/vagrant", ".", :nfs => true)
-      end
-    end
-
-    vagrant up
-    vagrant ssh
-
-## Some basic setup:
-
-    sudo su -
-    ln -sf /usr/share/zoneinfo/Canada/Eastern /etc/localtime
-    apt-get -yqq update
-    apt-get -yqq install python-software-properties
-    apt-get -yqq install vim curl expect debconf-utils git-core build-essential zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libpcre3 libpcre3-dev
-
-## Unicode
-
-    echo "export LANGUAGE=en_US.UTF-8" >> /etc/bash.bashrc
-    echo "export LANG=en_US.UTF-8" >> /etc/bash.bashrc
-    echo "export LC_ALL=en_US.UTF-8" >> /etc/bash.bashrc
-    export LANGUAGE=en_US.UTF-8
-    export LANG=en_US.UTF-8
-    export LC_ALL=en_US.UTF-8
-
-    locale-gen en_US.UTF-8
-    dpkg-reconfigure locales
-
-## RVM and Ruby
-
-    apt-get -yqq install libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt-dev autoconf libc6-dev ncurses-dev automake libtool bison subversion pkg-config curl build-essential git
-
-    su - vagrant -c "sudo bash -s stable < <(curl -s https://raw.github.com/wayneeseguin/rvm/master/binscripts/rvm-installer)"
-    adduser vagrant rvm
-    source /etc/profile.d/rvm.sh
-    su - vagrant -c "rvm pkg install libyaml"
-    su - vagrant -c "rvm install 2.0.0-turbo"
-    su - vagrant -c "rvm use 2.0.0-turbo --default"
-
-    echo "gem: --no-document" >> /etc/gemrc
-    su - vagrant -c "echo 'gem: --no-document' >> ~/.gemrc"
-
-## Postgres 9.1
-
-Configure so that the vagrant user doesn't need to provide username and password.
-
-    apt-get -yqq install postgresql postgresql-contrib-9.1 libpq-dev postgresql-server-dev-9.1
-    su - postgres
-    createuser --createdb --superuser -Upostgres vagrant
-    psql -c "ALTER USER vagrant WITH PASSWORD 'password';"
-    psql -c "create database discourse_development owner vagrant encoding 'UTF8' TEMPLATE template0;"
-    psql -c "create database discourse_test        owner vagrant encoding 'UTF8' TEMPLATE template0;"
-    psql -d discourse_development -c "CREATE EXTENSION hstore;"
-    psql -d discourse_development -c "CREATE EXTENSION pg_trgm;"
+    nvm install node
+    nvm alias default node
+    npm install -g svgo
 
 
-Edit /etc/postgresql/9.1/main/pg_hba.conf to have this:
+If everything goes alright, let's clone Discourse and start hacking:
 
-    local all all trust
-    host all all 127.0.0.1/32 trust
-    host all all ::1/128 trust
-    host all all 0.0.0.0/0 trust # wide-open
+    git clone https://github.com/discourse/discourse.git ~/discourse
+    cd ~/discourse
+    bundle install
 
-## Redis
+    # run this if there was a pre-existing database
+    bundle exec rake db:drop
+    RAILS_ENV=test bundle exec rake db:drop
 
-    sudo su -
-    mkdir /tmp/redis_install
-    cd /tmp/redis_install
-    wget http://redis.googlecode.com/files/redis-2.6.7.tar.gz
-    tar xvf redis-2.6.7.tar.gz
-    cd redis-2.6.7
-    make
-    make install
-    cd utils
-    ./install_server.sh
-    # Press enter to accept all the defaults
-    /etc/init.d/redis_6379 start
+    # time to create the database and run migrations
+    bundle exec rake db:create
+    bundle exec rake db:migrate
+    RAILS_ENV=test bundle exec rake db:create db:migrate
 
+    # run the specs (optional)
+    bundle exec rake autospec # CTRL + C to stop
 
-## Phantomjs
+    # launch discourse
+    bundle exec rails s -b 0.0.0.0 # open browser on http://localhost:3000 and you should see Discourse
 
-Needed to run javascript tests.
+Create an admin account with:
 
-    cd /usr/local/share
-    wget https://phantomjs.googlecode.com/files/phantomjs-1.8.2-linux-i686.tar.bz2
-    tar xvf phantomjs-1.8.2-linux-i686.tar.bz2
-    rm phantomjs-1.8.2-linux-i686.tar.bz2
-    ln -s /usr/local/share/phantomjs-1.8.2-linux-i686/bin/phantomjs /usr/local/bin/phantomjs
+    bundle exec rake admin:create
+
+If you ever need to recreate your database:
+
+    bundle exec rake db:drop db:create db:migrate
+    bundle exec rake admin:create
+    RAILS_ENV=test bundle exec rake db:drop db:create db:migrate
+
+Discourse does a lot of stuff async, so it's better to run sidekiq even on development mode:
+
+    mailcatcher # open http://localhost:1080 to see the emails, stop with pkill -f mailcatcher
+    bundle exec sidekiq # open http://localhost:3000/sidekiq to see queues
+    bundle exec rails server
+
+And happy hacking!

@@ -1,9 +1,14 @@
-class ColorSchemeSerializer < ApplicationSerializer
-  attributes :id, :name, :enabled, :can_edit
+# frozen_string_literal: true
 
+class ColorSchemeSerializer < ApplicationSerializer
+  attributes :id, :name, :is_base, :base_scheme_id, :theme_id, :theme_name, :user_selectable
   has_many :colors, serializer: ColorSchemeColorSerializer, embed: :objects
 
-  def can_edit
-    object.can_edit?
+  def theme_name
+    object.theme&.name
+  end
+
+  def theme_id
+    object.theme&.id
   end
 end

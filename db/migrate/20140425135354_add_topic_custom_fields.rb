@@ -1,10 +1,12 @@
-class AddTopicCustomFields < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddTopicCustomFields < ActiveRecord::Migration[4.2]
   def change
     create_table :topic_custom_fields do |t|
       t.integer :topic_id, null: false
       t.string :name, limit: 256, null: false
       t.text :value
-      t.timestamps
+      t.timestamps null: false
     end
 
     add_index :topic_custom_fields, [:topic_id, :name]

@@ -1,4 +1,4 @@
-require_dependency 'screening_model'
+# frozen_string_literal: true
 
 # A ScreenedUrl record represents a URL that is being watched.
 # If the URL is found in a post, some action can be performed.
@@ -21,7 +21,7 @@ class ScreenedUrl < ActiveRecord::Base
     self.domain = self.domain.downcase.sub(/^www\./, '') if self.domain
   end
 
-  def self.watch(url, domain, opts={})
+  def self.watch(url, domain, opts = {})
     find_match(url) || create(opts.slice(:action_type, :ip_address).merge(url: url, domain: domain))
   end
 
@@ -42,8 +42,8 @@ end
 # Table name: screened_urls
 #
 #  id            :integer          not null, primary key
-#  url           :string(255)      not null
-#  domain        :string(255)      not null
+#  url           :string           not null
+#  domain        :string           not null
 #  action_type   :integer          not null
 #  match_count   :integer          default(0), not null
 #  last_match_at :datetime

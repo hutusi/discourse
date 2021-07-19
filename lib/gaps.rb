@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # This is used for finding the gaps between a subset of elements in an array
 # and the original layout. We use this in Discourse to find gaps between posts.
@@ -23,7 +25,7 @@ class Gaps
   end
 
   def find_gaps
-    return if @subset.nil? or @original.nil?
+    return if @subset.nil? || @original.nil?
 
     i = j = 0
     gaps = {}
@@ -48,7 +50,7 @@ class Gaps
       break if (i == @subset.size) || (j == @original.size)
     end
 
-    @after[@subset[i-1]] = @original[j..-1] if j < @original.size
+    @after[@subset[i - 1]] = @original[j..-1] if j < @original.size
   end
 
 end

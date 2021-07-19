@@ -1,22 +1,38 @@
 /*!
- * jQuery Color Animations v@VERSION
+ * jQuery Color Animations v3.0.0-alpha.1
  * https://github.com/jquery/jquery-color
  *
- * Copyright 2012 jQuery Foundation and other contributors
+ * Copyright jQuery Foundation and other contributors
  * Released under the MIT license.
  * http://jquery.org/license
  *
- * Date: @DATE
+ * Date: Wed Jan 31 14:31:10 2018 +0100
  */
-(function( jQuery, undefined ) {
 
-	var stepHooks = "backgroundColor borderBottomColor borderLeftColor borderRightColor borderTopColor color columnRuleColor outlineColor textDecorationColor textEmphasisColor",
+( function( root, factory ) {
+	if ( typeof define === "function" && define.amd ) {
+
+		// AMD. Register as an anonymous module.
+		define( [ "jquery" ], factory );
+	} else if ( typeof exports === "object" ) {
+		module.exports = factory( require( "jquery" ) );
+	} else {
+		factory( root.jQuery );
+	}
+} )( this, function( jQuery, undefined ) {
+
+	var stepHooks = "backgroundColor borderBottomColor borderLeftColor borderRightColor " +
+		"borderTopColor color columnRuleColor outlineColor textDecorationColor textEmphasisColor",
+
+	class2type = {},
+	toString = class2type.toString,
 
 	// plusequals test for += 100 -= 100
 	rplusequals = /^([\-+])=\s*(\d+\.?\d*)/,
+
 	// a set of RE's that can match strings and generate color tuples.
-	stringParsers = [{
-			re: /rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?\)/,
+	stringParsers = [ {
+			re: /rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(\d?(?:\.\d+)?)\s*)?\)/,
 			parse: function( execResult ) {
 				return [
 					execResult[ 1 ],
@@ -26,7 +42,7 @@
 				];
 			}
 		}, {
-			re: /rgba?\(\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?\)/,
+			re: /rgba?\(\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*(?:,\s*(\d?(?:\.\d+)?)\s*)?\)/,
 			parse: function( execResult ) {
 				return [
 					execResult[ 1 ] * 2.55,
@@ -36,6 +52,7 @@
 				];
 			}
 		}, {
+
 			// this regex ignores A-F because it's compared against an already lowercased string
 			re: /#([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})/,
 			parse: function( execResult ) {
@@ -46,6 +63,7 @@
 				];
 			}
 		}, {
+
 			// this regex ignores A-F because it's compared against an already lowercased string
 			re: /#([a-f0-9])([a-f0-9])([a-f0-9])/,
 			parse: function( execResult ) {
@@ -56,7 +74,7 @@
 				];
 			}
 		}, {
-			re: /hsla?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?\)/,
+			re: /hsla?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*(?:,\s*(\d?(?:\.\d+)?)\s*)?\)/,
 			space: "hsla",
 			parse: function( execResult ) {
 				return [
@@ -66,7 +84,7 @@
 					execResult[ 4 ]
 				];
 			}
-		}],
+		} ],
 
 	// jQuery.Color( )
 	color = jQuery.Color = function( color, green, blue, alpha ) {
@@ -120,20 +138,12 @@
 			floor: true
 		}
 	},
-	support = color.support = {},
-
-	// element for support tests
-	supportElem = jQuery( "<p>" )[ 0 ],
 
 	// colors = jQuery.Color.names
 	colors,
 
 	// local aliases of functions called often
 	each = jQuery.each;
-
-// determine rgba support immediately
-supportElem.style.cssText = "background-color:rgba(1,1,1,.5)";
-support.rgba = supportElem.style.backgroundColor.indexOf( "rgba" ) > -1;
 
 // define cache name and alpha properties
 // for rgba and hsla spaces
@@ -144,32 +154,43 @@ each( spaces, function( spaceName, space ) {
 		type: "percent",
 		def: 1
 	};
-});
+} );
+
+// Populate the class2type map
+jQuery.each( "Boolean Number String Function Array Date RegExp Object Error Symbol".split( " " ),
+	function( i, name ) {
+		class2type[ "[object " + name + "]" ] = name.toLowerCase();
+	} );
+
+function getType( obj ) {
+	if ( obj == null ) {
+		return obj + "";
+	}
+
+	return typeof obj === "object" ?
+		class2type[ toString.call( obj ) ] || "object" :
+		typeof obj;
+}
 
 function clamp( value, prop, allowEmpty ) {
 	var type = propTypes[ prop.type ] || {};
 
 	if ( value == null ) {
-		return (allowEmpty || !prop.def) ? null : prop.def;
+		return ( allowEmpty || !prop.def ) ? null : prop.def;
 	}
 
 	// ~~ is an short way of doing floor for positive numbers
 	value = type.floor ? ~~value : parseFloat( value );
 
-	// IE will pass in empty strings as value for alpha,
-	// which will hit this case
-	if ( isNaN( value ) ) {
-		return prop.def;
-	}
-
 	if ( type.mod ) {
+
 		// we add mod before modding to make sure that negatives values
 		// get converted properly: -10 -> 350
-		return (value + type.mod) % type.mod;
+		return ( value + type.mod ) % type.mod;
 	}
 
 	// for now all property types without mod have min and max
-	return 0 > value ? 0 : type.max < value ? type.max : value;
+	return Math.min( type.max, Math.max( 0, value ) );
 }
 
 function stringParse( string ) {
@@ -195,7 +216,7 @@ function stringParse( string ) {
 			// exit each( stringParsers ) here because we matched
 			return false;
 		}
-	});
+	} );
 
 	// Found a stringParser that handled it
 	if ( rgba.length ) {
@@ -224,9 +245,8 @@ color.fn = jQuery.extend( color.prototype, {
 		}
 
 		var inst = this,
-			type = jQuery.type( red ),
-			rgba = this._rgba = [],
-			source;
+			type = getType( red ),
+			rgba = this._rgba = [];
 
 		// more than 1 argument specified - assume ( red, green, blue, alpha )
 		if ( green !== undefined ) {
@@ -241,7 +261,7 @@ color.fn = jQuery.extend( color.prototype, {
 		if ( type === "array" ) {
 			each( spaces.rgba.props, function( key, prop ) {
 				rgba[ prop.idx ] = clamp( red[ prop.idx ], prop );
-			});
+			} );
 			return this;
 		}
 
@@ -251,7 +271,7 @@ color.fn = jQuery.extend( color.prototype, {
 					if ( red[ space.cache ] ) {
 						inst[ space.cache ] = red[ space.cache ].slice();
 					}
-				});
+				} );
 			} else {
 				each( spaces, function( spaceName, space ) {
 					var cache = space.cache;
@@ -271,17 +291,21 @@ color.fn = jQuery.extend( color.prototype, {
 						// this is the only case where we allow nulls for ALL properties.
 						// call clamp with alwaysAllowEmpty
 						inst[ cache ][ prop.idx ] = clamp( red[ key ], prop, true );
-					});
+					} );
 
 					// everything defined but alpha?
 					if ( inst[ cache ] && jQuery.inArray( null, inst[ cache ].slice( 0, 3 ) ) < 0 ) {
+
 						// use the default of 1
-						inst[ cache ][ 3 ] = 1;
+						if ( inst[ cache ][ 3 ] == null ) {
+							inst[ cache ][ 3 ] = 1;
+						}
+
 						if ( space.from ) {
 							inst._rgba = space.from( inst[ cache ] );
 						}
 					}
-				});
+				} );
 			}
 			return this;
 		}
@@ -294,17 +318,17 @@ color.fn = jQuery.extend( color.prototype, {
 		each( spaces, function( _, space ) {
 			var localCache,
 				isCache = is[ space.cache ];
-			if (isCache) {
+			if ( isCache ) {
 				localCache = inst[ space.cache ] || space.to && space.to( inst._rgba ) || [];
 				each( space.props, function( _, prop ) {
 					if ( isCache[ prop.idx ] != null ) {
 						same = ( isCache[ prop.idx ] === localCache[ prop.idx ] );
 						return same;
 					}
-				});
+				} );
 			}
 			return same;
-		});
+		} );
 		return same;
 	},
 	_space: function() {
@@ -314,7 +338,7 @@ color.fn = jQuery.extend( color.prototype, {
 			if ( inst[ space.cache ] ) {
 				used.push( spaceName );
 			}
-		});
+		} );
 		return used.pop();
 	},
 	transition: function( other, distance ) {
@@ -336,6 +360,7 @@ color.fn = jQuery.extend( color.prototype, {
 			if ( endValue === null ) {
 				return;
 			}
+
 			// if null - use end
 			if ( startValue === null ) {
 				result[ index ] = endValue;
@@ -349,10 +374,11 @@ color.fn = jQuery.extend( color.prototype, {
 				}
 				result[ index ] = clamp( ( endValue - startValue ) * distance + startValue, prop );
 			}
-		});
+		} );
 		return this[ spaceName ]( result );
 	},
 	blend: function( opaque ) {
+
 		// if we are already opaque - return ourself
 		if ( this._rgba[ 3 ] === 1 ) {
 			return this;
@@ -364,13 +390,16 @@ color.fn = jQuery.extend( color.prototype, {
 
 		return color( jQuery.map( rgb, function( v, i ) {
 			return ( 1 - a ) * blend[ i ] + a * v;
-		}));
+		} ) );
 	},
 	toRgbaString: function() {
 		var prefix = "rgba(",
 			rgba = jQuery.map( this._rgba, function( v, i ) {
-				return v == null ? ( i > 2 ? 1 : 0 ) : v;
-			});
+                if ( v != null ) {
+                    return v;
+                }
+				return i > 2 ? 1 : 0;
+			} );
 
 		if ( rgba[ 3 ] === 1 ) {
 			rgba.pop();
@@ -391,7 +420,7 @@ color.fn = jQuery.extend( color.prototype, {
 					v = Math.round( v * 100 ) + "%";
 				}
 				return v;
-			});
+			} );
 
 		if ( hsla[ 3 ] === 1 ) {
 			hsla.pop();
@@ -407,17 +436,16 @@ color.fn = jQuery.extend( color.prototype, {
 			rgba.push( ~~( alpha * 255 ) );
 		}
 
-		return "#" + jQuery.map( rgba, function( v, i ) {
+		return "#" + jQuery.map( rgba, function( v ) {
 
 			// default to 0 when nulls exist
-			v = ( v || 0 ).toString( 16 );
-			return v.length === 1 ? "0" + v : v;
-		}).join("");
+			return ( "0" + ( v || 0 ).toString( 16 ) ).substr( -2 );
+		} ).join( "" );
 	},
 	toString: function() {
 		return this._rgba[ 3 ] === 0 ? "transparent" : this.toRgbaString();
 	}
-});
+} );
 color.fn.parse.prototype = color.fn;
 
 // hsla conversions adapted from:
@@ -426,18 +454,18 @@ color.fn.parse.prototype = color.fn;
 function hue2rgb( p, q, h ) {
 	h = ( h + 1 ) % 1;
 	if ( h * 6 < 1 ) {
-		return p + (q - p) * h * 6;
+		return p + ( q - p ) * h * 6;
 	}
-	if ( h * 2 < 1) {
+	if ( h * 2 < 1 ) {
 		return q;
 	}
 	if ( h * 3 < 2 ) {
-		return p + (q - p) * ((2/3) - h) * 6;
+		return p + ( q - p ) * ( ( 2 / 3 ) - h ) * 6;
 	}
 	return p;
 }
 
-spaces.hsla.to = function ( rgba ) {
+spaces.hsla.to = function( rgba ) {
 	if ( rgba[ 0 ] == null || rgba[ 1 ] == null || rgba[ 2 ] == null ) {
 		return [ null, null, null, rgba[ 3 ] ];
 	}
@@ -462,17 +490,19 @@ spaces.hsla.to = function ( rgba ) {
 		h = ( 60 * ( r - g ) / diff ) + 240;
 	}
 
-	if ( l === 0 || l === 1 ) {
-		s = l;
+	// chroma (diff) == 0 means greyscale which, by definition, saturation = 0%
+	// otherwise, saturation is based on the ratio of chroma (diff) to lightness (add)
+	if ( diff === 0 ) {
+		s = 0;
 	} else if ( l <= 0.5 ) {
 		s = diff / add;
 	} else {
 		s = diff / ( 2 - add );
 	}
-	return [ Math.round(h) % 360, s, l, a == null ? 1 : a ];
+	return [ Math.round( h ) % 360, s, l, a == null ? 1 : a ];
 };
 
-spaces.hsla.from = function ( hsla ) {
+spaces.hsla.from = function( hsla ) {
 	if ( hsla[ 0 ] == null || hsla[ 1 ] == null || hsla[ 2 ] == null ) {
 		return [ null, null, null, hsla[ 3 ] ];
 	}
@@ -481,8 +511,7 @@ spaces.hsla.from = function ( hsla ) {
 		l = hsla[ 2 ],
 		a = hsla[ 3 ],
 		q = l <= 0.5 ? l * ( 1 + s ) : l + s - l * s,
-		p = 2 * l - q,
-		r, g, b;
+		p = 2 * l - q;
 
 	return [
 		Math.round( hue2rgb( p, q, h + ( 1 / 3 ) ) * 255 ),
@@ -511,7 +540,7 @@ each( spaces, function( spaceName, space ) {
 		}
 
 		var ret,
-			type = jQuery.type( value ),
+			type = getType( value ),
 			arr = ( type === "array" || type === "object" ) ? value : arguments,
 			local = this[ cache ].slice();
 
@@ -521,7 +550,7 @@ each( spaces, function( spaceName, space ) {
 				val = local[ prop.idx ];
 			}
 			local[ prop.idx ] = clamp( val, prop );
-		});
+		} );
 
 		if ( from ) {
 			ret = color( from( local ) );
@@ -534,16 +563,22 @@ each( spaces, function( spaceName, space ) {
 
 	// makes red() green() blue() alpha() hue() saturation() lightness()
 	each( props, function( key, prop ) {
+
 		// alpha is included in more than one space
 		if ( color.fn[ key ] ) {
 			return;
 		}
 		color.fn[ key ] = function( value ) {
-			var vtype = jQuery.type( value ),
-				fn = ( key === "alpha" ? ( this._hsla ? "hsla" : "rgba" ) : spaceName ),
-				local = this[ fn ](),
-				cur = local[ prop.idx ],
-				match;
+			var local, cur, match, fn,
+				vtype = getType( value );
+
+			if ( key === "alpha" ) {
+				fn = this._hsla ? "hsla" : "rgba";
+			} else {
+				fn = spaceName;
+			}
+			local = this[ fn ]();
+			cur = local[ prop.idx ];
 
 			if ( vtype === "undefined" ) {
 				return cur;
@@ -551,7 +586,7 @@ each( spaces, function( spaceName, space ) {
 
 			if ( vtype === "function" ) {
 				value = value.call( this, cur );
-				vtype = jQuery.type( value );
+				vtype = getType( value );
 			}
 			if ( value == null && prop.empty ) {
 				return this;
@@ -565,8 +600,8 @@ each( spaces, function( spaceName, space ) {
 			local[ prop.idx ] = value;
 			return this[ fn ]( local );
 		};
-	});
-});
+	} );
+} );
 
 // add cssHook and .fx.step function for each named hook.
 // accept a space separated string of properties
@@ -575,36 +610,13 @@ color.hook = function( hook ) {
 	each( hooks, function( i, hook ) {
 		jQuery.cssHooks[ hook ] = {
 			set: function( elem, value ) {
-				var parsed, curElem,
-					backgroundColor = "";
+				var parsed;
 
-				if ( jQuery.type( value ) !== "string" || ( parsed = stringParse( value ) ) ) {
+				if ( value !== "transparent" && ( getType( value ) !== "string" || ( parsed = stringParse( value ) ) ) ) {
 					value = color( parsed || value );
-					if ( !support.rgba && value._rgba[ 3 ] !== 1 ) {
-						curElem = hook === "backgroundColor" ? elem.parentNode : elem;
-						while (
-							(backgroundColor === "" || backgroundColor === "transparent") &&
-							curElem && curElem.style
-						) {
-							try {
-								backgroundColor = jQuery.css( curElem, "backgroundColor" );
-								curElem = curElem.parentNode;
-							} catch ( e ) {
-							}
-						}
-
-						value = value.blend( backgroundColor && backgroundColor !== "transparent" ?
-							backgroundColor :
-							"_default" );
-					}
-
 					value = value.toRgbaString();
 				}
-				try {
-					elem.style[ hook ] = value;
-				} catch( value ) {
-					// wrapped to prevent IE from throwing errors on "invalid" values like 'auto' or 'inherit'
-				}
+				elem.style[ hook ] = value;
 			}
 		};
 		jQuery.fx.step[ hook ] = function( fx ) {
@@ -615,7 +627,7 @@ color.hook = function( hook ) {
 			}
 			jQuery.cssHooks[ hook ].set( fx.elem, fx.start.transition( fx.end, fx.pos ) );
 		};
-	});
+	} );
 
 };
 
@@ -627,7 +639,7 @@ jQuery.cssHooks.borderColor = {
 
 		each( [ "Top", "Right", "Bottom", "Left" ], function( i, part ) {
 			expanded[ "border" + part + "Color" ] = value;
-		});
+		} );
 		return expanded;
 	}
 };
@@ -636,6 +648,7 @@ jQuery.cssHooks.borderColor = {
 // Usage of any of the other color names requires adding yourself or including
 // jquery.color.svg-names.js.
 colors = jQuery.Color.names = {
+
 	// 4.1. Basic color keywords
 	aqua: "#00ffff",
 	black: "#000000",
@@ -654,11 +667,10 @@ colors = jQuery.Color.names = {
 	white: "#ffffff",
 	yellow: "#ffff00",
 
-	// 4.2.3. ‘transparent’ color keyword
+	// 4.2.3. "transparent" color keyword
 	transparent: [ null, null, null, 0 ],
 
 	_default: "#ffffff"
 };
 
-})( jQuery );
-
+} );

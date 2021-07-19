@@ -1,4 +1,6 @@
-class AddLatestToCategories < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddLatestToCategories < ActiveRecord::Migration[4.2]
   def up
     add_column :categories, :latest_post_id, :integer
     add_column :categories, :latest_topic_id, :integer

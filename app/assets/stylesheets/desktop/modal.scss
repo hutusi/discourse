@@ -1,171 +1,77 @@
-// base styles for every modal popup used in Discourse
-
-.modal-middle-container {
-  display:table-cell;
-  vertical-align: middle;
-}
-
 // Hardcode to be the same as before for now. I would recommend not using bootbox, or finding a way so the html structure can be the same
 .bootbox.modal {
-  position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 1050;
-  overflow: auto;
   width: 610px;
-  height: auto;
   margin: -250px 0 0 -305px;
-  background-color: $secondary;
-  border: 1px solid scale-color($primary, $lightness: 90%);
-  border: 1px solid scale-color($primary, $lightness: 90%);
-
-  box-shadow: 0 3px 7px rgba($primary, .8);
-  background-clip: padding-box;
-
+  .cancel {
+    margin-left: 1em;
+  }
 }
 
 .modal.in {
--webkit-animation: modal .25s;
-animation: modal .25s;
+  -webkit-animation: fade 0.25s;
+  animation: fade 0.25s;
 }
 
-//fade in and animate up
-
-@-webkit-keyframes modal {
-    from {opacity: 0}
-    to {opacity: 1}
-}@keyframes fade {
-    from {opacity: 0}
-    to {opacity: 1}
-}
-
-.modal-body {
-  overflow-y: auto;
-  max-height: 400px;
-  padding: 15px;
-}
-
-.modal-footer .btn + .btn {
-  margin-left: 5px;
-  margin-bottom: 0;
-}
 .modal-footer .btn.right {
   float: right;
 }
 
-.modal-footer .btn-group .btn + .btn {
-  margin-left: -1px;
-}
 .modal-header {
-  border-bottom: 1px solid scale-color($primary, $lightness: 90%);
   h3 {
-    color: $danger;
-    font-size: 20px;
-    padding: 10px 15px 7px;
+    font-size: $font-up-3;
   }
-  .close {
-    float: right;
-    font-size: 20px;
-    margin: 10px 10px 0;
-    text-decoration: none;
-    color: scale-color($primary, $lightness: 35%);
-    cursor: pointer;
-    &:hover {
-      color: $primary;
-    }
+}
+
+.close {
+  font-size: $font-up-3;
+  text-decoration: none;
+  &:visited {
+    color: var(--primary-high);
+  }
+  cursor: pointer;
+  &:hover {
+    color: var(--primary);
   }
 }
 
 .modal {
-  .category-combobox {
-    width: 430px;
+  .category-chooser {
+    width: 50%;
+  }
 
-    .chzn-drop {
-      left: -9000px;
-      width: 428px;
-    }
-    .chzn-search input {
-      width: 378px;
-    }
-
-    .chzn-search-icon {
-      margin-top: 8px;
+  .modal-body.insert-link {
+    input {
+      min-width: 450px;
     }
   }
 }
 
-.flag-modal {
-  max-height: 450px;
-}
-
-.custom-message-length {
-  margin-bottom: 10px;
-  margin-left: 20px;
-}
-
-.flag-message {
-  margin-left: 20px;
-  width: 95% !important;
-}
-
-.edit-category-modal {
-  .modal-body {
-    position: relative;
-    height: 420px;
-    max-height: 420px;
-    padding-bottom: 0;
-  }
-  .secure-category-options {
-    margin: 10px 0 0 16px;
-    .badge-list {
-      margin: 10px 0;
-      li {
-        margin: 0 4px 8px 0;
-        a {
-          color: scale-color($primary, $lightness: 50%);
-          cursor: pointer;
-        }
-        a:hover {
-          color: scale-color($primary, $lightness: 40%);
-        }
-      }
-    }
-  }
-}
-
-.topic-bulk-actions-modal {
-  p {
-    margin-top: 0;
-  }
-  &.full .modal-body {
-    height: 400px;
-    max-height: 400px;
-  }
-}
-.tabbed-modal {
-  .modal-body {
-    position: relative;
-    height: 350px;
-  }
-}
-
-.modal-tab {
-  position: absolute;
-}
-
-.split-modal {
+.choose-topic-modal {
   .modal-body {
     position: relative;
     height: 350px;
   }
 
-  #move-selected {
+  #choosing-topic {
+    // prevents content from moving when user selects different move options 525px
+    // is the same width we set on category edit modal
+    width: 525px;
+
     p {
       margin-top: 0;
     }
 
-    input[type=radio] {
-      margin-right: 10px;
+    .radios {
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: row;
+
+      .radio-label {
+        display: inline-block;
+        padding-right: 15px;
+      }
     }
 
     button {
@@ -175,10 +81,37 @@ animation: modal .25s;
     }
 
     form {
+      width: 95%;
       margin-top: 20px;
-      #split-topic-name, #choose-topic-title {
-        width: 520px;
+
+      .participant-selector {
+        width: 100%;
+      }
+
+      div.ac-wrap {
+        width: 100%;
+        margin-bottom: 9px;
       }
     }
+  }
+}
+
+.change-post-notice-modal {
+  .modal-body {
+    min-width: 450px;
+  }
+}
+
+.json-schema-editor-modal {
+  #json-editor-holder {
+    min-width: 500px;
+  }
+}
+
+.create-invite-modal,
+.create-invite-bulk-modal,
+.share-topic-modal {
+  .modal-inner-container {
+    width: 600px;
   }
 }

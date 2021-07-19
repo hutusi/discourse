@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PostUpload < ActiveRecord::Base
   belongs_to :post
   belongs_to :upload
@@ -13,5 +15,7 @@ end
 #
 # Indexes
 #
-#  idx_unique_post_uploads  (post_id,upload_id) UNIQUE
+#  idx_unique_post_uploads          (post_id,upload_id) UNIQUE
+#  index_post_uploads_on_post_id    (post_id)
+#  index_post_uploads_on_upload_id  (upload_id)
 #

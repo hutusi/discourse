@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PostDetail < ActiveRecord::Base
   belongs_to :post
 
@@ -11,8 +13,8 @@ end
 #
 #  id         :integer          not null, primary key
 #  post_id    :integer
-#  key        :string(255)
-#  value      :string(255)
+#  key        :string
+#  value      :string
 #  extra      :text
 #  created_at :datetime         not null
 #  updated_at :datetime         not null

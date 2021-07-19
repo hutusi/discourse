@@ -1,4 +1,6 @@
-class AddEmailDirectToUsers < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class AddEmailDirectToUsers < ActiveRecord::Migration[4.2]
   def change
     add_column :users, :email_direct, :boolean, default: true, null: false
     remove_column :users, :email_mentions

@@ -1,4 +1,6 @@
-class BackfillPostUploadReverseIndex < ActiveRecord::Migration
+# frozen_string_literal: true
+
+class BackfillPostUploadReverseIndex < ActiveRecord::Migration[4.2]
 
   def up
     # clean the reverse index
@@ -6,7 +8,7 @@ class BackfillPostUploadReverseIndex < ActiveRecord::Migration
 
     # fill the reverse index up
     Post.select([:id, :cooked]).find_each do |post|
-      doc = Nokogiri::HTML::fragment(post.cooked)
+      doc = Nokogiri::HTML5::fragment(post.cooked)
       # images
       doc.search("img").each { |img| add_to_reverse_index(img['src'], post.id) }
       # thumbnails and/or attachments

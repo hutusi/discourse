@@ -1,4 +1,6 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 require 'cache'
 
 describe "Redis Store" do
@@ -23,7 +25,7 @@ describe "Redis Store" do
 
     r = store.read "key"
 
-    r.should == "key in store"
+    expect(r).to eq("key in store")
   end
 
   it "doesn't collide with our Cache" do
@@ -38,10 +40,13 @@ describe "Redis Store" do
 
     r = store.read "key"
 
-    r.should == "key in store"
+    expect(r).to eq("key in store")
   end
 
   it "can be cleared without clearing our cache" do
+    cache.clear
+    store.clear
+
     store.fetch "key" do
       "key in store"
     end
@@ -51,8 +56,9 @@ describe "Redis Store" do
     end
 
     store.clear
-    store.read("key").should be_nil
-    cache.fetch("key").should == "key in cache"
+
+    expect(store.read("key")).to eq(nil)
+    expect(cache.fetch("key")).to eq("key in cache")
 
   end
 

@@ -1,6 +1,7 @@
+# frozen_string_literal: true
+
 class Backfill < Thor
   desc "link_titles", "Backfills link titles"
-
 
   def link_titles
     require './config/environment'
@@ -13,4 +14,3 @@ class Backfill < Thor
     end
   end
 end
-

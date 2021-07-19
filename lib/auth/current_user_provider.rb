@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Auth; end
 class Auth::CurrentUserProvider
 
@@ -12,12 +14,20 @@ class Auth::CurrentUserProvider
   end
 
   # log on a user and set cookies and session etc.
-  def log_on_user(user,session,cookies)
+  def log_on_user(user, session, cookies, opts = {})
     raise NotImplementedError
+  end
+
+  # optional interface to be called to refresh cookies etc if needed
+  def refresh_session(user, session, cookies)
   end
 
   # api has special rights return true if api was detected
   def is_api?
+    raise NotImplementedError
+  end
+
+  def is_user_api?
     raise NotImplementedError
   end
 
@@ -26,7 +36,6 @@ class Auth::CurrentUserProvider
   def has_auth_cookie?
     raise NotImplementedError
   end
-
 
   def log_off_user(session, cookies)
     raise NotImplementedError

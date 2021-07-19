@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class UserHistorySerializer < ApplicationSerializer
   attributes :action_name,
              :details,
@@ -7,13 +9,20 @@ class UserHistorySerializer < ApplicationSerializer
              :created_at,
              :subject,
              :previous_value,
-             :new_value
+             :new_value,
+             :topic_id,
+             :post_id,
+             :category_id,
+             :action,
+             :custom_type,
+             :id
 
   has_one :acting_user, serializer: BasicUserSerializer, embed: :objects
   has_one :target_user, serializer: BasicUserSerializer, embed: :objects
 
   def action_name
-    UserHistory.actions.key(object.action).to_s
+    key = UserHistory.actions.key(object.action)
+    [:custom, :custom_staff].include?(key) ? object.custom_type : key.to_s
   end
 
   def new_value

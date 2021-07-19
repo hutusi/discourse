@@ -1,30 +1,71 @@
-require_dependency 'guardian/category_guardian'
-require_dependency 'guardian/ensure_magic'
-require_dependency 'guardian/post_guardian'
-require_dependency 'guardian/topic_guardian'
-require_dependency 'guardian/user_guardian'
+# frozen_string_literal: true
+
+require 'guardian/category_guardian'
+require 'guardian/ensure_magic'
+require 'guardian/post_guardian'
+require 'guardian/bookmark_guardian'
+require 'guardian/topic_guardian'
+require 'guardian/user_guardian'
+require 'guardian/post_revision_guardian'
+require 'guardian/group_guardian'
+require 'guardian/tag_guardian'
 
 # The guardian is responsible for confirming access to various site resources and operations
 class Guardian
   include EnsureMagic
   include CategoryGuardian
-  include PostGuardain
+  include PostGuardian
+  include BookmarkGuardian
   include TopicGuardian
   include UserGuardian
+  include PostRevisionGuardian
+  include GroupGuardian
+  include TagGuardian
 
   class AnonymousUser
-    def blank?; true; end
-    def admin?; false; end
-    def staff?; false; end
-    def moderator?; false; end
-    def approved?; false; end
-    def secure_category_ids; []; end
-    def topic_create_allowed_category_ids; []; end
-    def has_trust_level?(level); false; end
-    def email; nil; end
+    def blank?
+      true
+    end
+    def admin?
+      false
+    end
+    def staff?
+      false
+    end
+    def moderator?
+      false
+    end
+    def anonymous?
+      true
+    end
+    def approved?
+      false
+    end
+    def staged?
+      false
+    end
+    def silenced?
+      false
+    end
+    def secure_category_ids
+      []
+    end
+    def topic_create_allowed_category_ids
+      []
+    end
+    def has_trust_level?(level)
+      false
+    end
+    def email
+      nil
+    end
   end
-  def initialize(user=nil)
+
+  attr_reader :request
+
+  def initialize(user = nil, request = nil)
     @user = user.presence || AnonymousUser.new
+    @request = request
   end
 
   def user
@@ -52,10 +93,28 @@ class Guardian
     @user.moderator?
   end
 
+  def is_category_group_moderator?(category)
+    return false unless category
+    return false unless authenticated?
+
+    @is_category_group_moderator ||= begin
+      SiteSetting.enable_category_group_moderation? &&
+        category.present? &&
+        category.reviewable_by_group_id.present? &&
+        GroupUser.where(group_id: category.reviewable_by_group_id, user_id: @user.id).exists?
+    end
+  end
+
+  def is_silenced?
+    @user.silenced?
+  end
+
   def is_developer?
     @user &&
     is_admin? &&
-    (Rails.env.development? ||
+    (
+      Rails.env.development? ||
+      Developer.user_ids.include?(@user.id) ||
       (
         Rails.configuration.respond_to?(:developer_emails) &&
         Rails.configuration.developer_emails.include?(@user.email)
@@ -63,15 +122,23 @@ class Guardian
     )
   end
 
+  def is_staged?
+    @user.staged?
+  end
+
+  def is_anonymous?
+    @user.anonymous?
+  end
+
   # Can the user see the object?
   def can_see?(obj)
     if obj
       see_method = method_name_for :see, obj
-      return (see_method ? send(see_method, obj) : true)
+      (see_method ? public_send(see_method, obj) : true)
     end
   end
 
-  def can_create?(klass, parent=nil)
+  def can_create?(klass, parent = nil)
     return false unless authenticated? && klass
 
     # If no parent is provided, we look for a can_create_klass?
@@ -86,9 +153,13 @@ class Guardian
     end
     create_method = :"can_create_#{target}?"
 
-    return send(create_method, parent) if respond_to?(create_method)
+    return public_send(create_method, parent) if respond_to?(create_method)
 
     true
+  end
+
+  def can_enable_safe_mode?
+    SiteSetting.enable_safe_mode? || is_staff?
   end
 
   # Can the user edit the obj
@@ -102,18 +173,84 @@ class Guardian
   end
 
   def can_moderate?(obj)
-    obj && authenticated? && (is_staff? || (obj.is_a?(Topic) && @user.has_trust_level?(:elder)))
+    obj && authenticated? && !is_silenced? && (
+      is_staff? ||
+      (obj.is_a?(Topic) && @user.has_trust_level?(TrustLevel[4]) && can_see_topic?(obj))
+    )
   end
-  alias :can_move_posts? :can_moderate?
   alias :can_see_flags? :can_moderate?
-  alias :can_send_activation_email? :can_moderate?
-  alias :can_grant_badges? :can_moderate?
+
+  def can_tag?(topic)
+    return false if topic.blank?
+
+    topic.private_message? ? can_tag_pms? : can_tag_topics?
+  end
+
+  def can_see_tags?(topic)
+    SiteSetting.tagging_enabled && topic.present? && (!topic.private_message? || can_tag_pms?)
+  end
+
+  def can_send_activation_email?(user)
+    user && is_staff? && !SiteSetting.must_approve_users?
+  end
+
+  def can_grant_badges?(_user)
+    SiteSetting.enable_badges && is_staff?
+  end
+
+  def can_delete_reviewable_queued_post?(reviewable)
+    reviewable.present? &&
+      authenticated? &&
+      reviewable.created_by_id == @user.id
+  end
 
   def can_see_group?(group)
-    group.present? && (is_admin? || group.visible?)
+    group.present? && can_see_groups?([group])
   end
 
+  def can_see_group_members?(group)
+    return false if group.blank?
+    return true if is_admin? || group.members_visibility_level == Group.visibility_levels[:public]
+    return true if is_staff? && group.members_visibility_level == Group.visibility_levels[:staff]
+    return true if is_staff? && group.members_visibility_level == Group.visibility_levels[:members]
+    return true if authenticated? && group.members_visibility_level == Group.visibility_levels[:logged_on_users]
+    return false if user.blank?
 
+    return false unless membership = GroupUser.find_by(group_id: group.id, user_id: user.id)
+    return true if membership.owner
+
+    return false if group.members_visibility_level == Group.visibility_levels[:owners]
+    return false if group.members_visibility_level == Group.visibility_levels[:staff]
+
+    true
+  end
+
+  def can_see_groups?(groups)
+    return false if groups.blank?
+    return true if is_admin? || groups.all? { |g| g.visibility_level == Group.visibility_levels[:public] }
+    return true if is_staff? && groups.all? { |g| g.visibility_level == Group.visibility_levels[:staff] }
+    return true if is_staff? && groups.all? { |g| g.visibility_level == Group.visibility_levels[:members] }
+    return true if authenticated? && groups.all? { |g| g.visibility_level == Group.visibility_levels[:logged_on_users] }
+    return false if user.blank?
+
+    memberships = GroupUser.where(group: groups, user_id: user.id).pluck(:owner)
+    return false if memberships.size < groups.size
+    return true if memberships.all? # owner of all groups
+
+    return false if groups.all? { |g| g.visibility_level == Group.visibility_levels[:owners] }
+    return false if groups.all? { |g| g.visibility_level == Group.visibility_levels[:staff] }
+
+    true
+  end
+
+  def can_see_groups_members?(groups)
+    return false if groups.blank?
+
+    requested_group_ids = groups.map(&:id) # Can't use pluck, groups could be a regular array
+    matching_group_ids = Group.where(id: requested_group_ids).members_visible_groups(user).pluck(:id)
+
+    matching_group_ids.sort == requested_group_ids.sort
+  end
 
   # Can we impersonate this user?
   def can_impersonate?(target)
@@ -130,9 +267,13 @@ class Guardian
     # make it impossible to be the same user.
   end
 
+  def can_view_action_logs?(target)
+    target.present? && is_staff?
+  end
+
   # Can we approve it?
   def can_approve?(target)
-    is_staff? && target && not(target.approved?)
+    is_staff? && target && target.active? && !target.approved?
   end
 
   def can_activate?(target)
@@ -149,7 +290,7 @@ class Guardian
   end
 
   def can_grant_admin?(user)
-    can_administer_user?(user) && not(user.admin?)
+    can_administer_user?(user) && !user.admin?
   end
 
   def can_revoke_moderation?(moderator)
@@ -157,11 +298,29 @@ class Guardian
   end
 
   def can_grant_moderation?(user)
-    can_administer?(user) && not(user.moderator?)
+    can_administer?(user) && !user.moderator?
   end
 
-  def can_grant_title?(user)
-    user && is_staff?
+  def can_grant_title?(user, title = nil)
+    return true if user && is_staff?
+    return false if title.nil?
+    return true if title.empty? # A title set to '(none)' in the UI is an empty string
+    return false if user != @user
+
+    return true if user.badges
+      .where(allow_title: true)
+      .pluck(:name)
+      .any? { |name| Badge.display_name(name) == title }
+
+    user.groups.where(title: title).exists?
+  end
+
+  def can_use_primary_group?(user, group_id = nil)
+    return false if !user || !group_id
+    group = Group.find_by(id: group_id.to_i)
+
+    user.group_ids.include?(group_id.to_i) &&
+    (group ? !group.automatic : false)
   end
 
   def can_change_primary_group?(user)
@@ -175,7 +334,7 @@ class Guardian
   # Support sites that have to approve users
   def can_access_forum?
     return true unless SiteSetting.must_approve_users?
-    return false unless @user
+    return false if anonymous?
 
     # Staff can't lock themselves out of a site
     return true if is_staff?
@@ -187,40 +346,198 @@ class Guardian
     is_me?(user)
   end
 
-  def can_invite_to_forum?(groups=nil)
-    authenticated? &&
-    !SiteSetting.enable_sso &&
-    (
-      (!SiteSetting.must_approve_users? && @user.has_trust_level?(:regular)) ||
-      is_staff?
-    ) &&
-    (groups.blank? || is_admin?)
+  def can_see_invite_emails?(user)
+    is_staff? || is_me?(user)
   end
 
-  def can_invite_to?(object, group_ids=nil)
-    can_see?(object) &&
-    can_invite_to_forum? &&
-    ( group_ids.blank? || is_admin? )
+  def can_invite_to_forum?(groups = nil)
+    return false if !authenticated?
+
+    invites_available = SiteSetting.max_invites_per_day.to_i.positive?
+    trust_level_requirement_met = @user.has_trust_level?(SiteSetting.min_trust_level_to_allow_invite.to_i)
+
+    if !is_staff?
+      return false if !invites_available
+      return false if !trust_level_requirement_met
+    end
+
+    if groups.present?
+      return is_admin? || groups.all? { |g| can_edit_group?(g) }
+    end
+
+    true
+  end
+
+  def can_invite_to?(object, groups = nil)
+    return false unless authenticated?
+    is_topic = object.is_a?(Topic)
+    return true if is_admin? && !is_topic
+    return false if SiteSetting.max_invites_per_day.to_i == 0 && !is_staff?
+    return false if SiteSetting.must_approve_users? && !is_staff?
+    return false unless can_see?(object)
+    return false if groups.present?
+
+    if is_topic
+      if object.private_message?
+        return true if is_admin?
+        return false unless SiteSetting.enable_personal_messages?
+        return false if object.reached_recipients_limit? && !is_staff?
+      end
+
+      if (category = object.category) && category.read_restricted
+        if (groups = category.groups&.where(automatic: false))&.any?
+          return groups.any? { |g| can_edit_group?(g) } ? true : false
+        else
+          return false
+        end
+      end
+    end
+
+    user.has_trust_level?(SiteSetting.min_trust_level_to_allow_invite.to_i)
+  end
+
+  def can_invite_via_email?(object)
+    return false unless can_invite_to?(object)
+    (SiteSetting.enable_local_logins || SiteSetting.enable_discourse_connect) &&
+      (!SiteSetting.must_approve_users? || is_staff?)
+  end
+
+  def can_bulk_invite_to_forum?(user)
+    user.admin? && !SiteSetting.enable_discourse_connect
+  end
+
+  def can_resend_all_invites?(user)
+    user.staff?
+  end
+
+  def can_destroy_all_invites?(user)
+    user.staff?
   end
 
   def can_see_private_messages?(user_id)
     is_admin? || (authenticated? && @user.id == user_id)
   end
 
-  def can_send_private_message?(target)
-    (target.is_a?(Group) || target.is_a?(User)) &&
+  def can_invite_group_to_private_message?(group, topic)
+    can_see_topic?(topic) &&
+    can_send_private_message?(group)
+  end
+
+  def can_send_private_message?(target, notify_moderators: false)
+    is_user = target.is_a?(User)
+    is_group = target.is_a?(Group)
+
+    (is_group || is_user) &&
     # User is authenticated
     authenticated? &&
-    # Can't send message to yourself
-    is_not_me?(target) &&
     # Have to be a basic level at least
-    @user.has_trust_level?(:basic) &&
+    (is_group || @user.has_trust_level?(SiteSetting.min_trust_to_send_messages) || notify_moderators) &&
+    # User disabled private message
+    (is_staff? || is_group || target.user_option.allow_private_messages) &&
     # PMs are enabled
-    (SiteSetting.enable_private_messages ||
-      @user.username == SiteSetting.site_contact_username ||
-      @user == Discourse.system_user) &&
+    (is_staff? || SiteSetting.enable_personal_messages || notify_moderators) &&
     # Can't send PMs to suspended users
-    (is_staff? || target.is_a?(Group) || !target.suspended?)
+    (is_staff? || is_group || !target.suspended?) &&
+    # Check group messageable level
+    (is_staff? || is_user || Group.messageable(@user).where(id: target.id).exists?) &&
+    # Silenced users can only send PM to staff
+    (!is_silenced? || target.staff?)
+  end
+
+  def can_send_private_messages_to_email?
+    # Staged users must be enabled to create a temporary user.
+    return false if !SiteSetting.enable_staged_users
+    # User is authenticated
+    return false if !authenticated?
+    # User is trusted enough
+    return is_admin? if SiteSetting.min_trust_to_send_email_messages.to_s == 'admin'
+    return is_staff? if SiteSetting.min_trust_to_send_email_messages.to_s == 'staff'
+    SiteSetting.enable_personal_messages && @user.has_trust_level?(SiteSetting.min_trust_to_send_email_messages.to_i)
+  end
+
+  def can_export_entity?(entity)
+    return false if anonymous?
+    return true if is_admin?
+    return entity != 'user_list' if is_moderator?
+
+    # Regular users can only export their archives
+    return false unless entity == "user_archive"
+    UserExport.where(user_id: @user.id, created_at: (Time.zone.now.beginning_of_day..Time.zone.now.end_of_day)).count == 0
+  end
+
+  def can_mute_user?(target_user)
+    can_mute_users? &&
+      @user.id != target_user.id &&
+      !target_user.staff?
+  end
+
+  def can_mute_users?
+    return false if anonymous?
+    @user.staff? || @user.trust_level >= TrustLevel.levels[:basic]
+  end
+
+  def can_ignore_user?(target_user)
+    can_ignore_users? && @user.id != target_user.id && !target_user.staff?
+  end
+
+  def can_ignore_users?
+    return false if anonymous?
+    @user.staff? || @user.has_trust_level?(SiteSetting.min_trust_level_to_allow_ignore.to_i)
+  end
+
+  def allowed_theme_repo_import?(repo)
+    return false if !@user.admin?
+
+    allowed_repos = GlobalSetting.allowed_theme_repos
+    if !allowed_repos.blank?
+      urls = allowed_repos.split(",").map(&:strip)
+      return urls.include?(repo)
+    end
+
+    true
+  end
+
+  def allow_themes?(theme_ids, include_preview: false)
+    return true if theme_ids.blank?
+
+    if allowed_theme_ids = GlobalSetting.allowed_theme_ids
+      if (theme_ids - allowed_theme_ids).present?
+        return false
+      end
+    end
+
+    if include_preview && is_staff? && (theme_ids - Theme.theme_ids).blank?
+      return true
+    end
+
+    parent = theme_ids.first
+    components = theme_ids[1..-1] || []
+
+    Theme.user_theme_ids.include?(parent) &&
+      (components - Theme.components_for(parent)).empty?
+  end
+
+  def can_publish_page?(topic)
+    return false if !SiteSetting.enable_page_publishing?
+    return false if SiteSetting.secure_media?
+    return false if topic.blank?
+    return false if topic.private_message?
+    return false unless can_see_topic?(topic)
+    is_staff?
+  end
+
+  def can_see_about_stats?
+    true
+  end
+
+  def can_see_site_contact_details?
+    !SiteSetting.login_required? || authenticated?
+  end
+
+  def auth_token
+    if cookie = request&.cookies[Auth::DefaultCurrentUserProvider::TOKEN_COOKIE]
+      UserAuthToken.hash_token(cookie)
+    end
   end
 
   private
@@ -244,7 +561,7 @@ class Guardian
   end
 
   def can_administer?(obj)
-    is_admin? && obj.present?
+    is_admin? && obj.present? && obj.id&.positive?
   end
 
   def can_administer_user?(other_user)
@@ -259,7 +576,7 @@ class Guardian
   def can_do?(action, obj)
     if obj && authenticated?
       action_method = method_name_for action, obj
-      return (action_method ? send(action_method, obj) : true)
+      (action_method ? public_send(action_method, obj) : true)
     else
       false
     end
